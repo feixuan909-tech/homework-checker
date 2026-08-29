@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>作業檢核 Pro</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--line:#dfe5ea;--text:#2f3b46;--muted:#8a98a6;--blue:#4da3ff;--red:#ef5350;--yellow:#f6c945;--green:#59bf76;--orange:#f79a49}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{max-width:1500px;margin:auto}.topbar{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.brand{font-size:20px;font-weight:800;margin-right:auto}.small{font-size:12px;color:var(--muted)}.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;font-weight:700}.primary{background:#2f80ed!important;color:#fff;border-color:#2f80ed!important}.danger{color:#d84343}.main{display:grid;grid-template-columns:250px minmax(0,1fr);gap:14px;padding:14px}.card{background:#fff;border:1px solid var(--line);border-radius:14px}.sidebar{padding:12px;align-self:start}.side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}.cat-list{display:flex;flex-direction:column;gap:6px}.cat-item{display:flex;gap:8px;align-items:center;padding:9px 10px;border-radius:10px;border:1px solid transparent}.cat-item.active{background:#eaf3ff;border-color:#b9d7ff}.cat-name{flex:1;font-weight:700}.cat-date{font-size:11px;color:var(--muted)}.workspace{display:flex;flex-direction:column;gap:14px}.section{padding:14px}.section-title{font-size:16px;font-weight:800;margin-bottom:10px}.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:700}.input{border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:#fff;min-height:40px}.grow{flex:1}.statusbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.status-btn{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;font-weight:700}.status-btn.active{outline:3px solid #cfe4ff}.dot{width:18px;height:18px;border-radius:50%;display:inline-block;border:3px solid transparent;flex:0 0 auto}.red{background:var(--red)}.blue{background:var(--blue)}.yellow{background:var(--yellow)}.green{background:var(--green)}.orange{background:var(--orange)}.ring{background:var(--yellow);border-color:var(--green)}.student-grid,.contact-grid{display:grid;grid-template-columns:repeat(9,minmax(44px,1fr));gap:8px;margin-top:12px}.num{aspect-ratio:1;border-radius:50%;border:2px solid #d9e0e7;background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;min-width:44px}.num.selected{outline:3px solid #b9d7ff}.num.red{background:#ffe3e2;color:#b73835}.num.blue{background:#dbeeff;color:#1f6fba}.num.yellow{background:#fff3bf;color:#8d6f00}.num.green{background:#daf4e2;color:#237a3f}.num.orange{background:#ffe7d4;color:#a95617}.num.ring{background:#fff3bf;border:4px solid var(--green);color:#8d6f00}.action-row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.summary{margin-top:14px;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid var(--line)}.summary h4{margin:0 0 6px}.summary-line{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:14px}.hidden{display:none!important}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{border-collapse:collapse;width:100%;min-width:760px}th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px;text-align:center}th{background:#f8fafc}.cell-mark{display:inline-flex;width:26px;height:26px;border-radius:50%}.cell-mark.red{background:#ffd9d8}.cell-mark.yellow{background:#ffefad}.cell-mark.green{background:#d8f2df}.cell-mark.orange{background:#ffe2c9}.cell-mark.ring{background:#ffefad;border:3px solid var(--green)}.leave-row{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}.leave-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 9px}.leave-chip.active{background:#ffe7d4}.contact-note{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}.mini-legend{display:inline-flex;align-items:center;gap:5px}
+@media(max-width:760px){.main{grid-template-columns:1fr;padding:8px}.cat-list{display:grid;grid-template-columns:repeat(2,1fr)}.student-grid,.contact-grid{grid-template-columns:repeat(5,minmax(44px,1fr))}.statusbar{position:sticky;top:0;background:#fff;padding:8px 0;z-index:5}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar"><div><div class="brand">作業檢核 Pro</div><div class="small">手機・平板・電腦響應式測試版</div></div><button class="btn" onclick="exportData()">匯出備份</button><label class="btn">匯入備份<input id="importFile" type="file" accept=".json" hidden></label></header>
+<div class="main">
+<aside class="card sidebar"><div class="side-head"><b>類別</b><button class="btn primary" onclick="addCategory()">＋新增類別</button></div><div id="catList" class="cat-list"></div></aside>
+<main class="workspace">
+<section class="card section"><div class="section-title">今日聯絡簿</div><div class="contact-note"><span class="mini-legend"><span class="dot red"></span>未交</span><span class="mini-legend"><span class="dot blue"></span>已交</span><span class="mini-legend"><span class="dot yellow"></span>未簽／未完成</span><span class="mini-legend"><span class="dot orange"></span>請假</span></div><div class="row" style="margin-top:10px"><div class="field"><label>班級座號數</label><input id="studentCount" class="input" type="number" min="1" max="60"></div><button class="btn" onclick="applyStudentCount()">套用</button></div><div id="contactGrid" class="contact-grid"></div><div class="small" style="margin-top:10px">請假座號</div><div id="leaveRow" class="leave-row"></div><div class="action-row"><button class="btn primary" onclick="finishContact()">完成／更新聯絡簿統整</button></div><div id="contactSummary" class="summary hidden"></div></section>
+<section class="card section"><div class="row"><div class="field grow"><label>名稱／進度（可用 / 分隔，例如 L1/L2/L3）</label><input id="progressInput" class="input"></div><button class="btn" onclick="applyProgress()">套用名稱／進度</button><button class="btn" onclick="editCategory()">修改類別</button><button class="btn danger" onclick="deleteCategory()">刪除類別</button></div></section>
+<section class="card section"><div class="section-title">登記</div>
+        <div class="small">可一次選多個座號，再點狀態；套用後會自動取消座號選取。</div>
+        <div class="statusbar"><button class="status-btn active" data-status="red"><span class="dot red"></span>未繳交</button><button class="status-btn" data-status="blue"><span class="dot blue"></span>通過</button><button class="status-btn" data-status="yellow"><span class="dot yellow"></span>未訂正</button><button class="status-btn" data-status="green"><span class="dot green"></span>未簽</button><button class="status-btn" data-status="ring"><span class="dot ring"></span>未訂簽</button><button class="status-btn" data-status="orange"><span class="dot orange"></span>請假</button></div><div id="studentGrid" class="student-grid"></div><div class="action-row"><button class="btn" onclick="markAllPass()">全部通過</button><button class="btn primary" onclick="updateHomework()">更新</button></div><div id="dailySummary" class="summary hidden"></div></section>
+<section class="card section"><div class="section-title">歷史表格</div><div class="small" style="margin-bottom:8px">通過時保持空白，其餘狀態顯示圖示。</div><div class="table-wrap"><table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div></section>
+</main></div></div>
+<script>
+const TODAY = new Date().toISOString().slice(0,10);
+const DEFAULT_CATS = ['國習','甲本','乙本','成語','圈詞','國練','數習','數練','作文','閱讀單','回條','分享報告'];
+const STORE = 'hwCheckerPrototypeV3';
+
+let state = JSON.parse(localStorage.getItem(STORE) || 'null') || {
+  studentCount:27,
+  categories:DEFAULT_CATS.map((name,i)=>({id:'c'+i,name})),
+  currentCategory:'c0',
+  drafts:{},
+  history:[],
+  contact:{date:TODAY,statuses:{},leave:[]}
+};
+state.drafts ||= {};
+state.history ||= [];
+state.contact ||= {date:TODAY,statuses:{},leave:[]};
+
+let selectedStudents = new Set();
+let selectedStatus = 'red';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function save(){ localStorage.setItem(STORE, JSON.stringify(state)); }
+function currentCat(){ return state.categories.find(c=>c.id===state.currentCategory) || state.categories[0]; }
+function draftKey(catId,date,content){ return `${catId}|${date}|${content||''}`; }
+function currentDraftKey(){
+  const c=currentCat(), date=$('recordDate').value||TODAY, content=$('contentInput').value.trim();
+  return draftKey(c.id,date,content);
+}
+function getDraft(){
+  const k=currentDraftKey();
+  state.drafts[k] ||= {};
+  return state.drafts[k];
+}
+function latestDateForCat(id){
+  const dates=state.history.filter(h=>h.catId===id).map(h=>h.date).sort();
+  return dates.at(-1)||'';
+}
+function fmtDate(d){ if(!d)return ''; const [y,m,day]=d.split('-'); return `${m}/${day}`; }
+
+function renderAll(){
+  $('studentCount').value=state.studentCount;
+  $('recordDate').value=$('recordDate').value||TODAY;
+  renderCats(); renderStudentGrid(); renderContact(); renderTable();
+}
+function renderCats(){
+  $('catList').innerHTML=state.categories.map(c=>`
+    <div class="cat-item ${c.id===state.currentCategory?'active':''}" onclick="selectCategory('${c.id}')">
+      <div class="cat-name">${esc(c.name)}</div>
+      <div class="cat-date">${latestDateForCat(c.id)?fmtDate(latestDateForCat(c.id)):''}</div>
+    </div>`).join('');
+}
+function selectCategory(id){
+  state.currentCategory=id; selectedStudents.clear(); $('contentInput').value='';
+  save(); renderAll(); hideSummary();
+}
+function addCategory(){
+  const name=prompt('請輸入新類別名稱');
+  if(!name?.trim())return;
+  const id='c'+Date.now();
+  state.categories.push({id,name:name.trim()}); state.currentCategory=id;
+  save(); renderAll();
+}
+function editCategory(){
+  $('modalTitle').textContent='修改類別';
+  $('modalInput').value=currentCat().name;
+  $('modalBack').style.display='flex';
+}
+function deleteCategory(){
+  const c=currentCat(); if(!c)return;
+  if(!confirm(`確定刪除「${c.name}」類別？歷史紀錄也會一起刪除。`))return;
+  state.categories=state.categories.filter(x=>x.id!==c.id);
+  state.history=state.history.filter(h=>h.catId!==c.id);
+  Object.keys(state.drafts).filter(k=>k.startsWith(c.id+'|')).forEach(k=>delete state.drafts[k]);
+  state.currentCategory=state.categories[0]?.id||'';
+  save(); renderAll();
+}
+function closeModal(){ $('modalBack').style.display='none'; }
+function saveModal(){
+  const v=$('modalInput').value.trim(); if(!v)return;
+  currentCat().name=v; save(); closeModal(); renderAll();
+}
+function hideSummary(){ $('dailySummary').classList.add('hidden'); }
+
+document.querySelectorAll('.status-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    selectedStatus=btn.dataset.status;
+    document.querySelectorAll('.status-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    if(selectedStudents.size) applyStatusToSelected();
+  });
+});
+document.querySelector('.status-btn[data-status="red"]').classList.add('active');
+
+function renderStudentGrid(){
+  const grid=$('studentGrid'); grid.innerHTML='';
+  const draft=getDraft();
+  for(let n=1;n<=state.studentCount;n++){
+    const st=draft[n] || 'red';
+    const b=document.createElement('button');
+    b.className=`num ${st} ${selectedStudents.has(n)?'selected':''}`;
+    b.textContent=n;
+    b.onclick=()=>{
+      selectedStudents.has(n)?selectedStudents.delete(n):selectedStudents.add(n);
+      renderStudentGrid();
+    };
+    grid.appendChild(b);
+  }
+}
+$('recordDate').addEventListener('change',()=>{selectedStudents.clear();renderStudentGrid();hideSummary()});
+$('contentInput').addEventListener('change',()=>{selectedStudents.clear();renderStudentGrid();hideSummary()});
+
+function applyStatusToSelected(){
+  const draft=getDraft();
+  selectedStudents.forEach(n=>draft[n]=selectedStatus);
+  save();
+  selectedStudents.clear(); // critical fix: don't carry previous students into next status
+  renderStudentGrid();
+}
+function markAllPass(){
+  const draft=getDraft();
+  for(let n=1;n<=state.studentCount;n++) draft[n]='blue';
+  save(); selectedStudents.clear(); renderStudentGrid();
+}
+function clearCurrentDraft(){
+  delete state.drafts[currentDraftKey()];
+  selectedStudents.clear(); save(); renderStudentGrid(); hideSummary();
+}
+function updateHomework(){
+  const c=currentCat(), date=$('recordDate').value||TODAY, content=$('contentInput').value.trim();
+  const k=currentDraftKey(), draft={...(state.drafts[k]||{})};
+  for(let n=1;n<=state.studentCount;n++) if(!draft[n]) draft[n]='red';
+
+  // If same category/date/content already exists, replace that history record.
+  const existing=state.history.findIndex(h=>h.catId===c.id && h.date===date && h.content===content);
+  const rec={id: existing>=0?state.history[existing].id:'h'+Date.now(),catId:c.id,date,content,statuses:draft,updated:Date.now()};
+  if(existing>=0) state.history[existing]=rec; else state.history.push(rec);
+
+  delete state.drafts[k];
+  save(); selectedStudents.clear();
+  renderDailySummary(rec); renderCats(); renderTable(); renderStudentGrid();
+}
+function renderDailySummary(rec){
+  const groups={orange:[],red:[],green:[],ring:[],yellow:[]};
+  for(let n=1;n<=state.studentCount;n++){
+    const st=rec.statuses[n]; if(groups[st])groups[st].push(n);
+  }
+  const labels={orange:['請假','orange'],red:['未繳交','red'],green:['未簽','green'],ring:['未訂簽','ring'],yellow:['未訂正','yellow']};
+  const lines=Object.entries(groups).filter(([,v])=>v.length).map(([k,v])=>{
+    const [label,cls]=labels[k];
+    return `<div class="summary-line"><span class="dot ${cls}"></span><b>${label}：</b>${v.join('、')}</div>`;
+  }).join('');
+  const c=state.categories.find(x=>x.id===rec.catId);
+  $('dailySummary').innerHTML=`<h4>${esc(c?.name||'')}｜${rec.content?esc(rec.content)+'｜':''}${rec.date}</h4>${lines||'<div class="small">目前沒有需要追蹤的狀態。</div>'}`;
+  $('dailySummary').classList.remove('hidden');
+}
+function statusIcon(st){
+  if(st==='blue')return '';
+  return `<span class="cell-mark ${st}"></span>`;
+}
+function deleteHistory(id){
+  const h=state.history.find(x=>x.id===id); if(!h)return;
+  const c=state.categories.find(x=>x.id===h.catId);
+  const label=`${c?.name||''}${h.content?'｜'+h.content:''}｜${h.date}`;
+  if(!confirm(`確定刪除「${label}」這筆紀錄嗎？`))return;
+  state.history=state.history.filter(x=>x.id!==id); save(); renderCats(); renderTable(); hideSummary();
+}
+function renderTable(){
+  const c=currentCat(); if(!c)return;
+  const cols=state.history.filter(h=>h.catId===c.id).sort((a,b)=>b.updated-a.updated);
+  $('tableHead').innerHTML=`<tr><th class="sticky-seat">座號</th>${cols.map((h,i)=>`
+    <th class="${i===0?'latest-col':''}">
+      <div>${h.content?esc(h.content):'紀錄'}</div>
+      <div>${esc(h.date)}</div>
+      <button class="btn danger" style="padding:4px 7px;margin-top:5px;font-size:11px" onclick="deleteHistory('${h.id}')">刪除此筆</button>
+    </th>`).join('')}</tr>`;
+  let rows='';
+  for(let n=1;n<=state.studentCount;n++){
+    rows+=`<tr><td class="sticky-seat">${n}</td>${cols.map((h,i)=>`<td class="${i===0?'latest-col':''}">${statusIcon(h.statuses[n]||'red')}</td>`).join('')}</tr>`;
+  }
+  $('tableBody').innerHTML=rows||'';
+}
+
+// Contact book: red -> blue -> yellow -> red. Leave is independently toggleable.
+function renderContact(){
+  if(state.contact.date!==TODAY) state.contact={date:TODAY,statuses:{},leave:[]};
+  const grid=$('contactGrid'); grid.innerHTML='';
+  for(let n=1;n<=state.studentCount;n++){
+    const st=state.contact.leave.includes(n)?'orange':(state.contact.statuses[n]||'red');
+    const b=document.createElement('button');
+    b.className=`num ${st}`; b.textContent=n;
+    b.onclick=()=>{
+      if(state.contact.leave.includes(n))return;
+      const cur=state.contact.statuses[n]||'red';
+      state.contact.statuses[n]=cur==='red'?'blue':cur==='blue'?'yellow':'red';
+      save(); renderContact();
+    };
+    grid.appendChild(b);
+  }
+  $('leaveRow').innerHTML=Array.from({length:state.studentCount},(_,i)=>i+1).map(n=>`
+    <button class="leave-chip ${state.contact.leave.includes(n)?'active':''}" onclick="toggleLeave(${n})">${n}</button>`).join('');
+}
+function toggleLeave(n){
+  const a=state.contact.leave;
+  state.contact.leave=a.includes(n)?a.filter(x=>x!==n):[...a,n];
+  save(); renderContact();
+}
+function finishContact(){
+  const red=[],yellow=[];
+  for(let n=1;n<=state.studentCount;n++){
+    if(state.contact.leave.includes(n))continue;
+    const st=state.contact.statuses[n]||'red';
+    if(st==='red')red.push(n); if(st==='yellow')yellow.push(n);
+  }
+  let html=`<h4>今日聯絡簿｜${TODAY}</h4>`;
+  if(red.length)html+=`<div class="summary-line"><span class="dot red"></span><b>未交：</b>${red.join('、')}</div>`;
+  if(yellow.length)html+=`<div class="summary-line"><span class="dot yellow"></span><b>未簽／未完成：</b>${yellow.join('、')}</div>`;
+  if(state.contact.leave.length)html+=`<div class="summary-line"><span class="dot orange"></span><b>請假：</b>${[...state.contact.leave].sort((a,b)=>a-b).join('、')}</div>`;
+  if(!red.length&&!yellow.length&&!state.contact.leave.length)html+='<div class="small">目前沒有需要追蹤的座號。</div>';
+  $('contactSummary').innerHTML=html; $('contactSummary').classList.remove('hidden'); save();
+}
+function applyStudentCount(){
+  state.studentCount=Math.max(1,Math.min(60,Number($('studentCount').value||27)));
+  save(); renderAll();
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='作業檢核Pro_備份.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+$('importFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{state=JSON.parse(r.result);save();renderAll();alert('匯入完成')}catch{alert('備份檔格式不正確')}};
+  r.readAsText(f);
+});
+renderAll();
+</script>
+</body>
+</html>
