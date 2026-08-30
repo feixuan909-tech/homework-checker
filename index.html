@@ -553,7 +553,7 @@ html.mobile-ux .side-head>b{font-size:16px!important}
 
 
 
-/* v5.44：手機「編輯類別」模式改回單欄，避免 3 欄手機類別寬度把名稱輸入框擠到看不見。 */
+/* v5.45：手機「編輯類別」模式改回單欄，避免 3 欄手機類別寬度把名稱輸入框擠到看不見。 */
 html.mobile-ux .cat-list.editing{
   display:flex!important;
   flex-direction:column!important;
@@ -585,7 +585,7 @@ html.mobile-ux .cat-list.editing .category-delete{white-space:nowrap!important}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.44</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.45</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -860,7 +860,7 @@ function save(){
  if(window.hwCloud&&typeof window.hwCloud.queuePush==='function')window.hwCloud.queuePush();
 }
 window.hwCloudBridge={
- getState:()=>sanitizeState(state,true),
+ getState:()=>sanitizeState(state,false),
  applyRemote:(raw)=>{
    state=sanitizeState(raw,true);
    recomputeAllContinuousResolutions();
@@ -2235,7 +2235,7 @@ $('importFile').addEventListener('change',e=>{
  r.onerror=()=>alert('讀取備份檔失敗，未匯入任何資料。');
  r.readAsText(f);
 });
-recomputeAllContinuousResolutions();save();renderAll();
+recomputeAllContinuousResolutions();saveLocalOnly();renderAll();
 </script>
 
 <script type="module">
