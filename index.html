@@ -551,10 +551,41 @@ html.mobile-ux .side-head>b{font-size:16px!important}
   html.mobile-ux .cat-name{font-size:14.5px!important}
 }
 
+
+
+/* v5.44：手機「編輯類別」模式改回單欄，避免 3 欄手機類別寬度把名稱輸入框擠到看不見。 */
+html.mobile-ux .cat-list.editing{
+  display:flex!important;
+  flex-direction:column!important;
+  width:100%!important;
+  gap:8px!important;
+}
+html.mobile-ux .cat-list.editing .cat-edit-item{
+  display:grid!important;
+  grid-template-columns:36px minmax(0,1fr) auto!important;
+  width:100%!important;
+  min-width:0!important;
+  gap:7px!important;
+  align-items:center!important;
+}
+html.mobile-ux .cat-list.editing .cat-edit-item .category-name-edit{
+  width:100%!important;
+  min-width:0!important;
+  font-size:16px!important;
+}
+html.mobile-ux .cat-list.editing .cat-meta-row{
+  grid-column:2 / -1!important;
+  width:100%!important;
+  padding:2px 0 4px!important;
+}
+html.mobile-ux .cat-list.editing .cat-inline-confirm{grid-column:1 / -1!important}
+html.mobile-ux .cat-list.editing .cat-drag-handle{width:36px!important}
+html.mobile-ux .cat-list.editing .category-delete{white-space:nowrap!important}
+
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.43</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.44</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
