@@ -251,6 +251,8 @@ linear-gradient(to top right,transparent 49%,var(--line) 49.5%,var(--line) 50.5%
 .cat-kind-note{font-size:10px;color:var(--muted);line-height:1.35}
 
 .history-ok-edit-btn.active{background:#eaf7ee;border-color:#9fd7b1;color:#237a3f}
+.history-ok-edit-btn.has-pending{box-shadow:0 0 0 2px rgba(47,128,237,.16)}
+.history-table td.ok-editable.pending-toggle{box-shadow:inset 0 0 0 2px rgba(47,128,237,.42)}
 .history-table td.ok-editable{cursor:pointer;position:relative}
 .history-table td.ok-editable:hover{box-shadow:inset 0 0 0 2px rgba(47,128,237,.28)}
 .history-table td.ok-editable::before{
@@ -310,7 +312,7 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.27</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.28</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -624,6 +626,7 @@ function fmtDate(d){if(!d)return'';const[,m,day]=d.split('-');return`${Number(m)
 function renderAll(){refreshToday();$('studentCount').value=state.studentCount;if(!$('recordDate').value)$('recordDate').value=TODAY;renderCats();renderProgress();renderContact();renderStudentGrid();renderOverview();renderTable()}
 let categoryEditMode=false;
 let historyOkEditId='';
+let historyOkPending=new Set();
 let categoryDragId='';
 function normalizeCategoryName(v){
  return cleanText(v,30).trim().replace(/\s+/g,' ').toLocaleLowerCase('zh-Hant');
@@ -700,15 +703,17 @@ function renderCats(){
    row.addEventListener('dragend',()=>{
      row.classList.remove('dragging');
      box.querySelectorAll('.cat-edit-item').forEach(x=>x.classList.remove('drag-over'));
-     categoryDragId='';
+     categoryDragId='';stopCategoryAutoScroll();
    });
    row.addEventListener('dragover',e=>{
-     if(!categoryDragId||categoryDragId===c.id)return;
-     e.preventDefault();box.querySelectorAll('.cat-edit-item').forEach(x=>x.classList.remove('drag-over'));
+     if(!categoryDragId)return;
+     e.preventDefault();updateCategoryAutoScroll(e.clientY);
+     if(categoryDragId===c.id)return;
+     box.querySelectorAll('.cat-edit-item').forEach(x=>x.classList.remove('drag-over'));
      row.classList.add('drag-over');
    });
    row.addEventListener('drop',e=>{
-     e.preventDefault();row.classList.remove('drag-over');
+     e.preventDefault();row.classList.remove('drag-over');stopCategoryAutoScroll();
      if(!categoryDragId||categoryDragId===c.id)return;
      moveCategoryBefore(categoryDragId,c.id);
    });
@@ -728,16 +733,14 @@ function renderCats(){
    const overviewText=document.createElement('span');overviewText.textContent='顯示於最新進度總覽';
    overviewLabel.append(overview,overviewText);
 
-   const note=document.createElement('span');note.className='cat-kind-note';
-   note.textContent='獨立項目完成時，不會自動把前一筆未完成標成 OK。';
-   meta.append(typeLabel,kind,overviewLabel,note);
+   meta.append(typeLabel,kind,overviewLabel);
 
    row.append(handle,input,delBtn,meta);
    box.appendChild(row);
  });
 
  const hint=document.createElement('div');hint.className='small';hint.style.gridColumn='1/-1';
- hint.textContent='☰ 可拖曳排序；連續作業會追蹤前次未完成，獨立項目則每一筆各自計算。';
+ hint.textContent='☰ 拖曳到欄位上、下邊緣會自動捲動；連續作業會追蹤前次未完成，獨立項目則每一筆各自計算。';
  box.appendChild(hint);
 
  const addRow=document.createElement('div');addRow.className='cat-add-item';
@@ -751,6 +754,22 @@ function renderCats(){
  const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='btn primary';saveBtn.textContent='儲存變更';
  saveBtn.addEventListener('click',saveCategoryChanges);actions.appendChild(saveBtn);box.appendChild(actions);
 }
+let categoryAutoScrollTimer=null,categoryAutoScrollSpeed=0;
+function stopCategoryAutoScroll(){
+ if(categoryAutoScrollTimer){clearInterval(categoryAutoScrollTimer);categoryAutoScrollTimer=null}
+ categoryAutoScrollSpeed=0;
+}
+function updateCategoryAutoScroll(clientY){
+ const side=document.querySelector('.sidebar');
+ if(!side||side.scrollHeight<=side.clientHeight){stopCategoryAutoScroll();return}
+ const rect=side.getBoundingClientRect(),edge=Math.min(86,Math.max(54,rect.height*.16));
+ let speed=0;
+ if(clientY<rect.top+edge)speed=-14;
+ else if(clientY>rect.bottom-edge)speed=14;
+ if(speed===categoryAutoScrollSpeed&&categoryAutoScrollTimer)return;
+ stopCategoryAutoScroll();categoryAutoScrollSpeed=speed;
+ if(speed)categoryAutoScrollTimer=setInterval(()=>{side.scrollTop+=speed},16);
+}
 function moveCategoryBefore(dragId,targetId){
  const from=state.categories.findIndex(c=>c.id===dragId),to=state.categories.findIndex(c=>c.id===targetId);
  if(from<0||to<0||from===to)return;
@@ -761,7 +780,7 @@ function moveCategoryBefore(dragId,targetId){
 }
 function selectCategory(id){
  if(!state.categories.some(c=>String(c.id)===String(id)))return;
- state.currentCategory=id;historyOkEditId='';selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',free:''};save();renderAll();$('dailySummary').classList.add('hidden')
+ state.currentCategory=id;historyOkEditId='';historyOkPending.clear();selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',free:''};save();renderAll();$('dailySummary').classList.add('hidden')
 }
 function toggleCategoryManager(){
  if(categoryEditMode){
@@ -1161,26 +1180,50 @@ function renderOverview(){
    tag.addEventListener('dblclick',()=>editIndependentWorkLabel(String(tag.dataset.workLabelId||'')));
  });
 }
+function previewManualHistoryOK(h,seat){
+ const actual=isStatusFullyResolved(h,seat);
+ if(historyOkEditId===h.id&&historyOkPending.has(seat))return !actual;
+ return actual;
+}
+function previewManualHistoryParts(h,seat){
+ if(historyOkEditId===h.id&&historyOkPending.has(seat)){
+   return isStatusFullyResolved(h,seat)?{}:{missing:true,correction:true,signature:true};
+ }
+ return resolvedPartState(h,seat);
+}
 function toggleManualHistoryOK(historyId,seat){
- const h=state.history.find(x=>x.id===historyId);if(!h)return;
+ const h=state.history.find(x=>x.id===historyId);if(!h||historyOkEditId!==historyId)return;
  const c=state.categories.find(x=>x.id===h.catId);
  if(c?.kind!=='independent')return;
  const st=h.statuses?.[seat];
- if(!['red','yellow','green','ring'].includes(st))return;
- h.resolved||={};h.resolvedParts||={};
- const currentlyResolved=isStatusFullyResolved(h,seat);
- if(currentlyResolved){
-   delete h.resolved[seat];
-   delete h.resolvedParts[seat];
- }else{
-   h.resolved[seat]=true;
-   h.resolvedParts[seat]={missing:true,correction:true,signature:true};
+ if(!['red','yellow','green','ring','orange'].includes(st))return;
+ if(historyOkPending.has(seat))historyOkPending.delete(seat);else historyOkPending.add(seat);
+ renderTable();
+}
+function commitHistoryOkEdits(){
+ if(!historyOkEditId)return;
+ const h=state.history.find(x=>x.id===historyOkEditId);
+ if(h){
+   h.resolved||={};h.resolvedParts||={};
+   for(const seat of historyOkPending){
+     const st=h.statuses?.[seat];
+     if(!['red','yellow','green','ring','orange'].includes(st))continue;
+     if(isStatusFullyResolved(h,seat)){
+       delete h.resolved[seat];delete h.resolvedParts[seat];
+     }else{
+       h.resolved[seat]=true;
+       h.resolvedParts[seat]={missing:true,correction:true,signature:true};
+     }
+   }
+   if(historyOkPending.size){h.updated=Date.now();save()}
  }
- h.updated=Date.now();save();renderTable();renderOverview();renderCats();
+ historyOkPending.clear();historyOkEditId='';
+ renderTable();renderOverview();renderCats();
 }
 function toggleHistoryOkEdit(id){
- historyOkEditId=historyOkEditId===id?'':id;
- renderTable();
+ if(historyOkEditId===id){commitHistoryOkEdits();return}
+ if(historyOkEditId&&historyOkPending.size)commitHistoryOkEdits();
+ historyOkEditId=id;historyOkPending.clear();renderTable();
 }
 function renderTable(){
  const c=currentCat(),cols=state.history.filter(h=>h.catId===c.id).sort(compareHistory);
@@ -1196,10 +1239,10 @@ function renderTable(){
    const controls=document.createElement('div');controls.style.cssText='display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:5px';
    if(c.kind==='independent'){
      const okEdit=document.createElement('button');
-     okEdit.type='button';okEdit.className=`btn history-ok-edit-btn ${historyOkEditId===h.id?'active':''}`;
+     okEdit.type='button';okEdit.className=`btn history-ok-edit-btn ${historyOkEditId===h.id?'active':''} ${historyOkEditId===h.id&&historyOkPending.size?'has-pending':''}`;
      okEdit.style.cssText='padding:4px 7px;font-size:11px';
-     okEdit.textContent=historyOkEditId===h.id?'完成補登':'補登 OK';
-     okEdit.title='不改變原本狀態，只在這筆舊紀錄上補上或取消 OK';
+     okEdit.textContent=historyOkEditId===h.id?'補登完成':'補登 OK';
+     okEdit.title=historyOkEditId===h.id?'批次選好座號後，按此儲存補登結果':'進入補登模式，可一次點選多個座號後再儲存';
      okEdit.addEventListener('click',()=>toggleHistoryOkEdit(h.id));
      controls.appendChild(okEdit);
    }
@@ -1220,8 +1263,9 @@ function renderTable(){
      if(isWholeClassOK(h)){if(n===1)cells+=`<td class="${latest} all-ok-cell" rowspan="${state.studentCount}"><span class="all-ok-stamp">OK</span></td>`}
      else{
        const st=h.statuses[n]||'red';
-       const editable=historyOkEditId===h.id&&c.kind==='independent'&&['red','yellow','green','ring'].includes(st);
-       cells+=`<td class="${latest} ${editable?'ok-editable':''}"${editable?` data-history-id="${esc(h.id)}" data-seat="${n}"`:''}>${statusIcon(st,isStatusFullyResolved(h,n),resolvedPartState(h,n))}</td>`;
+       const editable=historyOkEditId===h.id&&c.kind==='independent'&&['red','yellow','green','ring','orange'].includes(st);
+       const pending=editable&&historyOkPending.has(n);
+       cells+=`<td class="${latest} ${editable?'ok-editable':''} ${pending?'pending-toggle':''}"${editable?` data-history-id="${esc(h.id)}" data-seat="${n}"`:''}>${statusIcon(st,previewManualHistoryOK(h,n),previewManualHistoryParts(h,n))}</td>`;
      }
    }
    rows+=`<tr><td>${n}</td>${cells}</tr>`;
@@ -1263,7 +1307,7 @@ function deleteHistory(id){
  if(idx<0)return;
  const deletedCatId=state.history[idx].catId;
  state.history.splice(idx,1);
- if(historyOkEditId===id)historyOkEditId='';
+ if(historyOkEditId===id){historyOkEditId='';historyOkPending.clear();}
  recomputeContinuousResolutions(deletedCatId);
  save();
  const box=$('historyDeleteConfirm');if(box)box.remove();
