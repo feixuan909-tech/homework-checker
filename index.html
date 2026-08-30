@@ -354,10 +354,73 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
 .history-main-edit-banner.show{display:flex}
 .history-main-edit-banner .title{font-weight:850;color:#2468a9}
 .history-main-edit-banner .actions{display:flex;gap:6px}
+
+.homework-entry-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.homework-entry-collapse-btn{padding:7px 10px;white-space:nowrap}
+#homeworkEntryBody.collapsed{display:none}
+.homework-entry-progress{padding-top:10px}
+.homework-entry-divider{border:0;border-top:1px solid var(--line);margin:14px 0}
+.unit-detail-select{min-height:40px;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff;max-width:190px}
+@media(max-width:560px){.unit-inline{flex-wrap:wrap}.unit-detail-select{width:100%;max-width:none}}
+
+.progress-validation{display:none;margin-top:7px;padding:8px 10px;border-radius:8px;background:#fff1f1;border:1px solid #efb4b4;color:#a32626;font-size:13px;font-weight:700}
+.progress-validation.show{display:block}
+
+/* v5.35：修正本次進度欄位擠壓重疊 */
+.direct-progress{
+  grid-template-columns:auto minmax(190px,auto) auto minmax(360px,1fr) !important;
+  align-items:center;
+  column-gap:10px;
+  row-gap:10px;
+}
+.direct-progress .unit-inline{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  width:max-content;
+  max-width:100%;
+}
+.direct-progress #unitType{flex:0 0 72px;min-width:72px}
+.direct-progress #unitNums{flex:0 0 150px;min-width:150px}
+.direct-progress #unitDetail{
+  flex:0 0 180px;
+  width:180px;
+  max-width:180px;
+  white-space:nowrap;
+}
+.direct-progress #freeProgress{
+  width:100%;
+  min-width:220px;
+}
+@media(max-width:1100px){
+  .direct-progress{
+    grid-template-columns:auto minmax(0,1fr) !important;
+  }
+  .direct-progress .unit-inline{
+    width:100%;
+    max-width:none;
+    flex-wrap:wrap;
+  }
+  .direct-progress #unitDetail{
+    flex:1 1 180px;
+    width:auto;
+    max-width:none;
+  }
+  .direct-progress #freeProgress{min-width:0}
+}
+@media(max-width:560px){
+  .direct-progress{grid-template-columns:1fr !important}
+  .direct-progress .progress-label{margin-top:4px}
+  .direct-progress .unit-inline{display:grid;grid-template-columns:72px 1fr;width:100%}
+  .direct-progress #unitType,.direct-progress #unitNums{min-width:0;width:100%;max-width:none}
+  .direct-progress #unitDetail{grid-column:1/-1;width:100%;max-width:none}
+}
+
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.32</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.35</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -449,32 +512,37 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
   <div id="contactSummary" class="summary hidden"></div>
 </div>
 </section>
-<section class="card section">
-<div class="row">
-  <div class="field grow">
-    <label>本次進度</label>
-    <div id="progressEditor" class="progress-editor direct-progress"></div>
-  </div>
-  <div class="field"><label>登記日期</label><input id="recordDate" class="input" type="date"></div>
+<section class="card section" id="homeworkEntrySection">
+<div class="homework-entry-head">
+  <div class="section-title" style="margin-bottom:0">作業登記</div>
+  <button id="homeworkEntryCollapseBtn" class="btn homework-entry-collapse-btn" type="button" aria-expanded="true">收起 ▲</button>
 </div>
-</section>
-
-<section class="card section">
-<div class="section-title">登記</div><div class="small">可一次選多個座號，再點狀態；套用後會自動取消選取。</div>
-<div id="historyMainEditBanner" class="history-main-edit-banner" aria-hidden="true"></div>
-<div id="homeworkStatusbar" class="statusbar" style="margin-top:10px"><button class="status-btn homework-status-btn active" type="button" data-status="blue"><span class="dot blue"></span>通過</button><button class="status-btn homework-status-btn" type="button" data-status="red"><span class="dot red"></span>未交／未寫</button><button class="status-btn homework-status-btn" type="button" data-status="green"><span class="dot green"></span>未簽</button><button class="status-btn homework-status-btn" type="button" data-status="ring"><span class="dot ring"></span>未訂簽</button><button class="status-btn homework-status-btn" type="button" data-status="yellow"><span class="dot yellow"></span>未訂正</button><button class="status-btn homework-status-btn" type="button" data-status="orange"><span class="dot orange"></span>請假</button></div>
-<div id="studentGrid" class="grid"></div>
-<div class="action-row">
-  <button id="clearHomeworkBtn" class="btn danger" type="button">清除目前登記</button>
-  <div class="all-pass-group">
-    <button id="markAllPassBtn" class="btn" type="button">全部通過</button>
-    <label class="exclude-leave-option" title="勾選後，按「全部通過」時會保留請假座號，不改成通過">
-      <input id="excludeLeaveOnAllPass" type="checkbox" checked>
-      <span>排除請假</span>
-    </label>
+<div id="homeworkEntryBody">
+  <div class="row homework-entry-progress">
+    <div class="field grow">
+      <label>本次進度</label>
+      <div id="progressEditor" class="progress-editor direct-progress"></div><div id="progressValidationMsg" class="progress-validation" role="alert" aria-live="polite"></div>
+    </div>
+    <div class="field"><label>登記日期</label><input id="recordDate" class="input" type="date"></div>
   </div>
-  <button id="updateHomeworkBtn" class="btn primary" type="button">更新</button>
-</div><div id="dailySummary" class="summary hidden"></div>
+  <hr class="homework-entry-divider">
+  <div class="small">可一次選多個座號，再點狀態；套用後會自動取消選取。</div>
+  <div id="historyMainEditBanner" class="history-main-edit-banner" aria-hidden="true"></div>
+  <div id="homeworkStatusbar" class="statusbar" style="margin-top:10px"><button class="status-btn homework-status-btn active" type="button" data-status="blue"><span class="dot blue"></span>通過</button><button class="status-btn homework-status-btn" type="button" data-status="red"><span class="dot red"></span>未交／未寫</button><button class="status-btn homework-status-btn" type="button" data-status="green"><span class="dot green"></span>未簽</button><button class="status-btn homework-status-btn" type="button" data-status="ring"><span class="dot ring"></span>未訂簽</button><button class="status-btn homework-status-btn" type="button" data-status="yellow"><span class="dot yellow"></span>未訂正</button><button class="status-btn homework-status-btn" type="button" data-status="orange"><span class="dot orange"></span>請假</button></div>
+  <div id="studentGrid" class="grid"></div>
+  <div class="action-row">
+    <button id="clearHomeworkBtn" class="btn danger" type="button">清除目前登記</button>
+    <div class="all-pass-group">
+      <button id="markAllPassBtn" class="btn" type="button">全部通過</button>
+      <label class="exclude-leave-option" title="勾選後，按「全部通過」時會保留請假座號，不改成通過">
+        <input id="excludeLeaveOnAllPass" type="checkbox" checked>
+        <span>排除請假</span>
+      </label>
+    </div>
+    <button id="updateHomeworkBtn" class="btn primary" type="button">更新</button>
+  </div>
+  <div id="dailySummary" class="summary hidden"></div>
+</div>
 </section>
 <section class="card section"><div class="section-title">歷史紀錄</div><div class="small" style="margin-bottom:8px">按「編輯紀錄」會把該筆資料載入上方一般登記區，可用原本三種進度輸入方式與座號狀態按鈕修改；「補登 OK」則直接在歷史紀錄中批次處理。左右滑動時座號欄固定。</div><div class="history-table-wrap"><table class="history-table"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div></section>
 </main></div>
@@ -615,7 +683,7 @@ function sanitizeState(raw,keepDrafts=false){
 }
 const CLOUD_DIRTY_KEY='hwCheckerCloudDirtyV1';
 let state;try{state=sanitizeState(JSON.parse(localStorage.getItem(STORE)||'null'),true)}catch{state=freshState()}
-let selectedStudents=new Set(),selectedStatus='blue',selectedContactStudents=new Set(),selectedContactStatus='blue',progress={a:'',b:'',unit:'L',unitNums:'',free:''};
+let selectedStudents=new Set(),selectedStatus='blue',selectedContactStudents=new Set(),selectedContactStatus='blue',progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
 function saveLocalOnly(){localStorage.setItem(STORE,JSON.stringify(state))}
 function save(){
  saveLocalOnly();
@@ -637,16 +705,17 @@ window.hwCloudBridge={
 };
 function currentCat(){return state.categories.find(c=>c.id===state.currentCategory)||state.categories[0]}
 function readProgressValues(){
- const paEl=$('pA'),pbEl=$('pB'),unitEl=$('unitNums'),typeEl=$('unitType'),freeEl=$('freeProgress');
+ const paEl=$('pA'),pbEl=$('pB'),unitEl=$('unitNums'),typeEl=$('unitType'),detailEl=$('unitDetail'),freeEl=$('freeProgress');
  const pa=String(paEl?paEl.value:progress.a||'').replace(/\D/g,'').slice(0,4);
  const pb=String(pbEl?pbEl.value:progress.b||'').replace(/\D/g,'').slice(0,4);
  const unitRaw=String(unitEl?unitEl.value:progress.unitNums||'').replace(/[^0-9,\-]/g,'').slice(0,30);
  const unit=['L','Ch','U'].includes(typeEl?typeEl.value:progress.unit)?(typeEl?typeEl.value:progress.unit):'L';
+ const unitDetail=['','生字','語詞＋綜合練習'].includes(detailEl?detailEl.value:progress.unitDetail)?(detailEl?detailEl.value:progress.unitDetail):'';
  const free=cleanText(freeEl?freeEl.value:progress.free||'',100);
- return {pa,pb,unitRaw,unit,free};
+ return {pa,pb,unitRaw,unit,unitDetail,free};
 }
 function buildContent(){
- const {pa,pb,unitRaw,unit,free}=readProgressValues();
+ const {pa,pb,unitRaw,unit,unitDetail,free}=readProgressValues();
  const used=(pa||pb?1:0)+(unitRaw?1:0)+(free?1:0);
  if(used>1)return {error:'multi'};
  if(pa||pb){
@@ -665,10 +734,24 @@ function buildContent(){
        const n=part.replace(/\D/g,''); if(n)parts.push(`${unit}${Number(n)}`);
      }
    }
-   return {content:parts.join('、'),type:'unit'};
+   return {content:parts.join('、')+(unitDetail?' '+unitDetail:''),type:'unit'};
  }
  if(free)return {content:free,type:'free'};
  return {content:'',type:'none'};
+}
+
+function progressErrorText(result=buildContent()){
+ if(result?.error==='multi')return '頁數、單元、自由輸入只能擇一填寫，請清除其中一種後再儲存。';
+ if(result?.error==='pageStart')return '已填寫迄頁時，也要填寫起始頁。';
+ if(result?.error==='range')return '進度起始數字不可大於結束數字。';
+ return '';
+}
+function renderProgressValidation(){
+ const box=$('progressValidationMsg');if(!box)return true;
+ const msg=progressErrorText();
+ box.textContent=msg;
+ box.classList.toggle('show',!!msg);
+ return !msg;
 }
 function draftKey(){return `${currentCat().id}|${$('recordDate').value||TODAY}`}
 function getDraft(){
@@ -854,7 +937,7 @@ function moveCategoryBefore(dragId,targetId){
 }
 function selectCategory(id){
  if(!state.categories.some(c=>String(c.id)===String(id)))return;
- state.currentCategory=id;historyOkEditId='';historyOkPending.clear();cancelHistoryRecordEdit(false);selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',free:''};save();renderAll()
+ state.currentCategory=id;historyOkEditId='';historyOkPending.clear();cancelHistoryRecordEdit(false);selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};save();renderAll()
 }
 function toggleCategoryManager(){
  if(categoryEditMode){
@@ -919,22 +1002,25 @@ function deleteCategoryById(id){
 
  save();
  selectedStudents.clear();
- progress={a:'',b:'',unit:'L',unitNums:'',free:''};
+ progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
  renderAll();
  renderCats();
 }
 
 function progressFromHistory(h){
  const content=String(h?.content||'').trim();
- if(!content)return {a:'',b:'',unit:'L',unitNums:'',free:''};
+ if(!content)return {a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
  let m=content.match(/^P\.(\d+)(?:～P\.(\d+))?$/);
- if(m)return {a:m[1]||'',b:m[2]||'',unit:'L',unitNums:'',free:''};
- m=content.match(/^(L|Ch|U)(.+)$/);
+ if(m)return {a:m[1]||'',b:m[2]||'',unit:'L',unitNums:'',unitDetail:'',free:''};
+ let detail='',unitContent=content;
+ if(/\s生字$/.test(unitContent)){detail='生字';unitContent=unitContent.replace(/\s生字$/,'')}
+ else if(/\s語詞＋綜合練習$/.test(unitContent)){detail='語詞＋綜合練習';unitContent=unitContent.replace(/\s語詞＋綜合練習$/,'')}
+ m=unitContent.match(/^(L|Ch|U)(.+)$/);
  if(m){
    const unit=m[1],rest=m[2].replace(new RegExp(unit,'g'),'').replace(/～/g,'-').replace(/、/g,',').replace(/[^0-9,\-]/g,'').slice(0,30);
-   if(rest)return {a:'',b:'',unit,unitNums:rest,free:''};
+   if(rest)return {a:'',b:'',unit,unitNums:rest,unitDetail:detail,free:''};
  }
- return {a:'',b:'',unit:'L',unitNums:'',free:content.slice(0,100)};
+ return {a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:content.slice(0,100)};
 }
 function renderHistoryMainEditBanner(){
  const box=$('historyMainEditBanner');if(!box)return;
@@ -954,15 +1040,18 @@ function renderProgress(){
    <span class="progress-label">頁數</span>
    <div class="page-inline"><span>P.</span><input id="pA" class="mini-input" inputmode="numeric" placeholder="起頁" value="${esc(progress.a||'')}"><span>～</span><span>P.</span><input id="pB" class="mini-input" inputmode="numeric" placeholder="迄頁" value="${esc(progress.b||'')}"></div>
    <span class="progress-label">單元</span>
-   <div class="unit-inline"><select id="unitType" class="unit-select"><option>L</option><option>Ch</option><option>U</option></select><input id="unitNums" class="input" inputmode="text" placeholder="例如 4,5 或 4-6" value="${esc(progress.unitNums||'')}"></div>
+   <div class="unit-inline"><select id="unitType" class="unit-select"><option>L</option><option>Ch</option><option>U</option></select><input id="unitNums" class="input" inputmode="text" placeholder="例如 4,5 或 4-6" value="${esc(progress.unitNums||'')}"><select id="unitDetail" class="unit-detail-select" aria-label="單元內容"><option value="">不指定內容</option><option value="生字">生字</option><option value="語詞＋綜合練習">語詞＋綜合練習</option></select></div>
    <span class="progress-label">自由輸入</span>
    <div class="free-inline"><input id="freeProgress" class="input" maxlength="100" placeholder="作文題目、學習單名稱等" value="${esc(progress.free||'')}"></div>`;
  $('unitType').value=['L','Ch','U'].includes(progress.unit)?progress.unit:'L';
- $('pA').oninput=e=>progress.a=e.target.value.replace(/\D/g,'').slice(0,4);
- $('pB').oninput=e=>progress.b=e.target.value.replace(/\D/g,'').slice(0,4);
- $('unitType').onchange=e=>progress.unit=e.target.value;
- $('unitNums').oninput=e=>progress.unitNums=e.target.value.replace(/[^0-9,\-]/g,'').slice(0,30);
- $('freeProgress').oninput=e=>progress.free=e.target.value.slice(0,100);
+ $('unitDetail').value=['','生字','語詞＋綜合練習'].includes(progress.unitDetail)?progress.unitDetail:'';
+ $('pA').oninput=e=>{progress.a=e.target.value.replace(/\D/g,'').slice(0,4);renderProgressValidation()};
+ $('pB').oninput=e=>{progress.b=e.target.value.replace(/\D/g,'').slice(0,4);renderProgressValidation()};
+ $('unitType').onchange=e=>{progress.unit=e.target.value;renderProgressValidation()};
+ $('unitNums').oninput=e=>{progress.unitNums=e.target.value.replace(/[^0-9,\-]/g,'').slice(0,30);renderProgressValidation()};
+ $('unitDetail').onchange=e=>{progress.unitDetail=e.target.value;renderProgressValidation()};
+ $('freeProgress').oninput=e=>{progress.free=e.target.value.slice(0,100);renderProgressValidation()};
+ renderProgressValidation();
 }
 $('categoryEditBtn').addEventListener('click',toggleCategoryManager);
 document.querySelectorAll('.homework-status-btn').forEach(btn=>btn.addEventListener('click',()=>{selectedStatus=btn.dataset.status;document.querySelectorAll('.homework-status-btn').forEach(b=>b.classList.toggle('active',b===btn));if(selectedStudents.size)applyStatusToSelected()}));
@@ -1167,9 +1256,13 @@ function updateHomework(){
  if(historyEditId)return saveHistoryRecordFromMain();
  const c=currentCat(),date=$('recordDate').value||TODAY,progressResult=buildContent();
  if(!validDate(date))return alert('登記日期不正確，請重新選擇日期。');
- if(progressResult.error==='multi')return alert('頁數、單元、自由輸入只能擇一填寫，請保留其中一種即可。');
- if(progressResult.error==='pageStart')return alert('頁數請先填寫起始頁。');
- if(progressResult.error==='range')return alert('進度起始數字不可大於結束數字。');
+ if(progressResult.error){
+   renderProgressValidation();
+   const msg=progressErrorText(progressResult);
+   $('progressValidationMsg')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+   if(msg)alert(msg);
+   return;
+ }
  const content=progressResult.content,progressType=progressResult.type;
  const key=draftKey(),d={...(state.drafts[key]||{})},leave=todayLeaveSet(),isToday=date===TODAY;
  for(let n=1;n<=state.studentCount;n++)if(!d[n])d[n]=isToday&&leave.has(n)?'orange':'red';
@@ -1508,7 +1601,7 @@ function toggleHistoryOkEdit(id){
 
 function cancelHistoryRecordEdit(render=true){
  historyEditId='';historyEditDraft=null;historyEditOriginalManual={};
- selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',free:''};
+ selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
  if(render){renderProgress();renderHistoryMainEditBanner();renderStudentGrid();renderTable();renderCurrentCategorySummary()}
 }
 function startHistoryRecordEdit(id){
@@ -1519,6 +1612,9 @@ function startHistoryRecordEdit(id){
  historyEditOriginalManual={...(h.manualResolved||{})};
  state.currentCategory=h.catId;
  $('recordDate').value=h.date;
+ const entryBody=$('homeworkEntryBody'),entryBtn=$('homeworkEntryCollapseBtn');
+ if(entryBody)entryBody.classList.remove('collapsed');
+ if(entryBtn){entryBtn.textContent='收起 ▲';entryBtn.setAttribute('aria-expanded','true')}
  progress=progressFromHistory(h);
  selectedStudents.clear();
  renderAll();
@@ -1529,9 +1625,13 @@ function saveHistoryRecordFromMain(){
  if(!h)return cancelHistoryRecordEdit();
  const date=$('recordDate').value||TODAY,pr=buildContent();
  if(!validDate(date))return alert('登記日期不正確，請重新選擇日期。');
- if(pr.error==='multi')return alert('頁數、單元、自由輸入只能擇一填寫，請保留其中一種即可。');
- if(pr.error==='pageStart')return alert('頁數請先填寫起始頁。');
- if(pr.error==='range')return alert('進度起始數字不可大於結束數字。');
+ if(pr.error){
+   renderProgressValidation();
+   const msg=progressErrorText(pr);
+   $('progressValidationMsg')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+   if(msg)alert(msg);
+   return;
+ }
  h.date=date;h.content=pr.content;h.progressType=pr.type;h.statuses={};
  for(let n=1;n<=state.studentCount;n++){
    const st=historyEditDraft?.[n]||'red';h.statuses[n]=VALID_STATUS.has(st)?st:'red';
@@ -1550,7 +1650,7 @@ function saveHistoryRecordFromMain(){
  }
  save();
  historyEditId='';historyEditDraft=null;historyEditOriginalManual={};
- selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',free:''};
+ selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
  renderAll();
 }
 function renderTable(){
@@ -1763,6 +1863,13 @@ function setContactCollapsed(collapsed){
  btn.setAttribute('aria-expanded',contactCollapsed?'false':'true');
 }
 $('contactCollapseBtn').addEventListener('click',()=>setContactCollapsed(!contactCollapsed));
+$('homeworkEntryCollapseBtn').addEventListener('click',()=>{
+ const body=$('homeworkEntryBody'),btn=$('homeworkEntryCollapseBtn');
+ const collapsed=!body.classList.contains('collapsed');
+ body.classList.toggle('collapsed',collapsed);
+ btn.textContent=collapsed?'展開 ▼':'收起 ▲';
+ btn.setAttribute('aria-expanded',collapsed?'false':'true');
+});
 setInterval(()=>{
  const before=TODAY;
  refreshToday();
@@ -1853,7 +1960,7 @@ function showImportConfirm(raw,fileName){
  const ok=document.createElement('button');ok.type='button';ok.className='btn primary';ok.textContent='確定匯入';
  cancel.addEventListener('click',()=>box.remove());
  ok.addEventListener('click',()=>{
-   state=sanitizeState(raw);recomputeAllContinuousResolutions();save();progress={a:'',b:'',unit:'L',unitNums:'',free:''};
+   state=sanitizeState(raw);recomputeAllContinuousResolutions();save();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
    selectedStudents.clear();selectedContactStudents.clear();box.remove();renderAll();
    alert('備份已檢查並匯入完成。');
  });
