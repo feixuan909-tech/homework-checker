@@ -498,57 +498,63 @@ html.mobile-ux .history-table th:first-child,html.mobile-ux .history-table td:fi
 html.mobile-ux .student-panel,html.mobile-ux .overview-panel,html.mobile-ux .cloud-panel{margin-left:8px;margin-right:8px}
 @media(max-width:390px){html.mobile-ux .cat-list{grid-template-columns:repeat(3,98px);gap:7px 7px}html.mobile-ux .cat-item{width:98px;min-height:52px;padding:7px 5px}html.mobile-ux .grid{grid-template-columns:repeat(7,44px);gap:6px 5px}html.mobile-ux .num{width:44px;height:44px;min-width:44px;font-size:14px}html.mobile-ux .leave-row{grid-template-columns:repeat(7,44px);gap:5px}html.mobile-ux .leave-chip{width:44px;min-width:44px}}
 
-/* v5.42：手機類別更緊湊，並強制保留手動收合控制。 */
+/* v5.43：手機類別加寬、主要文字略放大，維持緊湊與手動收合。 */
 html.mobile-ux .mobile-category-head{
   display:flex!important;
   width:100%;
   align-items:center;
   justify-content:space-between;
-  gap:8px;
-  margin:2px 0 7px;
+  gap:10px;
+  margin:3px 0 8px;
 }
 html.mobile-ux #mobileCategoryToggleBtn{
   display:inline-flex!important;
   flex:0 0 auto;
-  min-height:34px;
-  padding:5px 8px;
-  font-size:12px;
+  min-height:36px;
+  padding:6px 10px;
+  font-size:13px;
   white-space:nowrap;
 }
 html.mobile-ux .mobile-category-current{
   min-width:0;
-  font-size:13px;
-  line-height:1.2;
+  font-size:15px;
+  line-height:1.25;
+  font-weight:850;
 }
 html.mobile-ux .cat-list{
-  grid-template-columns:repeat(3,92px)!important;
-  column-gap:6px!important;
-  row-gap:4px!important;
+  grid-template-columns:repeat(3,102px)!important;
+  column-gap:7px!important;
+  row-gap:5px!important;
   justify-content:start!important;
   align-items:start!important;
 }
 html.mobile-ux .cat-item{
-  width:92px!important;
-  min-height:44px!important;
-  padding:4px 5px!important;
-  row-gap:1px!important;
+  width:102px!important;
+  min-height:46px!important;
+  padding:5px 6px!important;
+  row-gap:2px!important;
   line-height:1.15;
 }
 html.mobile-ux .cat-name{
-  line-height:1.15!important;
+  font-size:15px!important;
+  line-height:1.18!important;
+  font-weight:800;
 }
-html.mobile-ux .cat-date{font-size:9px!important;line-height:1.05}
-html.mobile-ux .cat-current-badge{font-size:8px!important;padding:2px 4px!important}
-html.mobile-ux .independent-badge{width:16px;height:16px;font-size:9px}
+html.mobile-ux .cat-date{font-size:10px!important;line-height:1.05}
+html.mobile-ux .cat-current-badge{font-size:9px!important;padding:2px 5px!important}
+html.mobile-ux .independent-badge{width:17px;height:17px;font-size:9px}
+html.mobile-ux .section-title{font-size:18px!important;line-height:1.25}
+html.mobile-ux .side-head>b{font-size:16px!important}
 @media(max-width:390px){
-  html.mobile-ux .cat-list{grid-template-columns:repeat(3,88px)!important;column-gap:5px!important;row-gap:4px!important}
-  html.mobile-ux .cat-item{width:88px!important;min-height:42px!important;padding:4px!important}
+  html.mobile-ux .cat-list{grid-template-columns:repeat(3,96px)!important;column-gap:6px!important;row-gap:5px!important}
+  html.mobile-ux .cat-item{width:96px!important;min-height:45px!important;padding:5px!important}
+  html.mobile-ux .cat-name{font-size:14.5px!important}
 }
 
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.42</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.43</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
