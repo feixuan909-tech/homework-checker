@@ -466,11 +466,12 @@ html.mobile-ux #mobileMoreMenu.show{display:flex}
 html.mobile-ux #mobileMoreMenu>.btn,html.mobile-ux #mobileMoreMenu>.import-label{flex:1 1 145px;text-align:center;justify-content:center}
 html.mobile-ux .mobile-category-head{align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
 html.mobile-ux #catList.mobile-collapsed{display:none}
-html.mobile-ux .cat-list{display:grid;grid-template-columns:repeat(3,92px);gap:7px 9px;justify-content:start}
-html.mobile-ux .cat-item{width:92px;min-width:0;padding:9px 5px;justify-content:center;text-align:center}
-html.mobile-ux .cat-name{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-html.mobile-ux .cat-date{font-size:10px}
+html.mobile-ux .cat-list{display:grid;grid-template-columns:repeat(3,104px);gap:8px 9px;justify-content:start;align-items:stretch}
+html.mobile-ux .cat-item{width:104px;min-width:0;min-height:54px;padding:7px 6px;justify-content:center;align-content:center;flex-wrap:wrap;row-gap:3px;text-align:center}
+html.mobile-ux .cat-name{flex:1 0 100%;width:100%;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.25;text-align:center}
+html.mobile-ux .cat-date{font-size:10px;white-space:nowrap}
 html.mobile-ux .cat-current-badge{font-size:9px;padding:3px 4px}
+html.mobile-ux .independent-badge{margin-left:0}
 html.mobile-ux .grid{grid-template-columns:repeat(7,48px);gap:7px 8px;width:auto;justify-content:start}
 html.mobile-ux .num{width:48px;height:48px;aspect-ratio:auto;min-width:48px;justify-self:start;font-size:15px}
 html.mobile-ux .leave-row{display:grid;grid-template-columns:repeat(7,48px);gap:6px 8px;width:auto;justify-content:start}
@@ -495,12 +496,12 @@ html.mobile-ux .history-table{width:max-content;min-width:100%}
 html.mobile-ux .history-table th,html.mobile-ux .history-table td{min-width:50px;height:30px;padding:2px 4px}
 html.mobile-ux .history-table th:first-child,html.mobile-ux .history-table td:first-child{min-width:40px;width:40px}
 html.mobile-ux .student-panel,html.mobile-ux .overview-panel,html.mobile-ux .cloud-panel{margin-left:8px;margin-right:8px}
-@media(max-width:390px){html.mobile-ux .cat-list{grid-template-columns:repeat(3,86px);gap:6px 7px}html.mobile-ux .cat-item{width:86px}html.mobile-ux .grid{grid-template-columns:repeat(7,44px);gap:6px 5px}html.mobile-ux .num{width:44px;height:44px;min-width:44px;font-size:14px}html.mobile-ux .leave-row{grid-template-columns:repeat(7,44px);gap:5px}html.mobile-ux .leave-chip{width:44px;min-width:44px}}
+@media(max-width:390px){html.mobile-ux .cat-list{grid-template-columns:repeat(3,98px);gap:7px 7px}html.mobile-ux .cat-item{width:98px;min-height:52px;padding:7px 5px}html.mobile-ux .grid{grid-template-columns:repeat(7,44px);gap:6px 5px}html.mobile-ux .num{width:44px;height:44px;min-width:44px;font-size:14px}html.mobile-ux .leave-row{grid-template-columns:repeat(7,44px);gap:5px}html.mobile-ux .leave-chip{width:44px;min-width:44px}}
 
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.40</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.41</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -1075,7 +1076,7 @@ function moveCategoryBefore(dragId,targetId){
 }
 function selectCategory(id){
  if(!state.categories.some(c=>String(c.id)===String(id)))return;
- state.currentCategory=id;historyOkEditId='';historyOkPending.clear();cancelHistoryRecordEdit(false);selectedStudents.clear();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};save();if(isMobileUX())mobileCategoriesCollapsed=true;renderAll();if(isMobileUX())setTimeout(()=>$('homeworkEntrySection')?.scrollIntoView({behavior:'smooth',block:'start'}),50)
+ state.currentCategory=id;historyOkEditId='';historyOkPending.clear();cancelHistoryRecordEdit(false);selectedStudents.clear();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};save();renderAll()
 }
 function toggleCategoryManager(){
  if(categoryEditMode){
