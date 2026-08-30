@@ -585,7 +585,7 @@ html.mobile-ux .cat-list.editing .category-delete{white-space:nowrap!important}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.49</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.50</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -2212,20 +2212,68 @@ async function exportData(){
  }
 }
 $('exportBtn').addEventListener('click',exportData);
+function importCatKey(c){return cleanText(c?.name||'',30).trim().replace(/\s+/g,' ').toLocaleLowerCase('zh-Hant')}
+function mergeImportedBackup(localRaw,backupRaw){
+ const local=sanitizeState(localRaw,true),backup=sanitizeState(backupRaw,false);
+ const categories=(local.categories||[]).map(c=>({...c}));
+ const byId=new Map(categories.map(c=>[c.id,c]));
+ const byName=new Map(categories.map(c=>[importCatKey(c),c]));
+ const backupCatMap=new Map();
+ for(const c of backup.categories||[]){
+   let target=byId.get(c.id)||byName.get(importCatKey(c));
+   if(!target){
+     let id=c.id,seq=1;
+     while(byId.has(id))id=`${c.id}_backup_${seq++}`;
+     target={...c,id};categories.push(target);byId.set(id,target);byName.set(importCatKey(target),target);
+   }
+   backupCatMap.set(c.id,target.id);
+ }
+ const validCatIds=new Set(categories.map(c=>c.id));
+ const historyMap=new Map();
+ for(const h of local.history||[])if(validCatIds.has(h.catId))historyMap.set(h.id,{...h});
+ let added=0,conflicts=0,backupWon=0;
+ for(const rawH of backup.history||[]){
+   const catId=backupCatMap.get(rawH.catId)||rawH.catId;if(!validCatIds.has(catId))continue;
+   const h={...rawH,catId};
+   const old=historyMap.get(h.id);
+   if(!old){historyMap.set(h.id,h);added++;continue}
+   if(JSON.stringify(old)===JSON.stringify(h))continue;
+   conflicts++;
+   if(Number(h.updated||0)>Number(old.updated||0)){historyMap.set(h.id,h);backupWon++}
+ }
+ const history=[...historyMap.values()].sort((a,b)=>Number(a.updated||0)-Number(b.updated||0));
+ let contact;
+ if(local.contact?.date===backup.contact?.date){
+   contact={date:local.contact.date,statuses:{...(backup.contact?.statuses||{}),...(local.contact?.statuses||{})},leave:[...new Set([...(backup.contact?.leave||[]),...(local.contact?.leave||[])])].sort((a,b)=>a-b)};
+ }else contact=(String(local.contact?.date||'')>=String(backup.contact?.date||''))?local.contact:backup.contact;
+ const currentCategory=validCatIds.has(local.currentCategory)?local.currentCategory:(categories[0]?.id||'c0');
+ const merged={studentCount:Math.max(Number(local.studentCount||0),Number(backup.studentCount||0),1),categories,currentCategory,history,contact,drafts:local.drafts||{}};
+ return {state:sanitizeState(merged,true),added,conflicts,backupWon,newCategories:categories.length-(local.categories||[]).length};
+}
 function showImportConfirm(raw,fileName){
  const old=$('importConfirmBox');if(old)old.remove();
  const box=document.createElement('div');box.id='importConfirmBox';box.className='import-confirm-box';
- const msg=document.createElement('span');msg.textContent=`準備匯入「${cleanText(fileName,80)}」。匯入後會取代目前資料，確定繼續嗎？`;
+ const msg=document.createElement('span');msg.textContent=`準備匯入「${cleanText(fileName,80)}」。你可以安全合併，或用備份完整取代目前資料。`;
  const actions=document.createElement('span');actions.className='import-confirm-actions';
  const cancel=document.createElement('button');cancel.type='button';cancel.className='btn';cancel.textContent='取消';
- const ok=document.createElement('button');ok.type='button';ok.className='btn primary';ok.textContent='確定匯入';
+ const merge=document.createElement('button');merge.type='button';merge.className='btn primary';merge.textContent='安全合併';
+ const replace=document.createElement('button');replace.type='button';replace.className='btn danger';replace.textContent='覆蓋目前資料';
  cancel.addEventListener('click',()=>box.remove());
- ok.addEventListener('click',()=>{
+ merge.addEventListener('click',()=>{
+   const result=mergeImportedBackup(state,raw);
+   const detail=`會新增 ${result.added} 筆備份紀錄${result.newCategories?`、${result.newCategories} 個新類別`:''}。`+(result.conflicts?`\n同一筆紀錄有 ${result.conflicts} 筆內容不同，其中 ${result.backupWon} 筆備份版本較新；其餘保留目前版本。`:'');
+   if(!confirm(`安全合併不會整份覆蓋目前資料，也會保留這台裝置的臨時草稿。\n\n${detail}\n\n確定進行安全合併嗎？`))return;
+   state=result.state;recomputeAllContinuousResolutions();save();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
+   selectedStudents.clear();selectedContactStudents.clear();box.remove();renderAll();
+   alert('備份已安全合併完成；目前資料與備份中不同的正式紀錄都已整合。');
+ });
+ replace.addEventListener('click',()=>{
+   if(!confirm('覆蓋目前資料會以備份內容完整取代目前正式紀錄；目前尚未同步或較新的正式資料可能消失。\n\n確定仍要覆蓋嗎？'))return;
    state=sanitizeState(raw);recomputeAllContinuousResolutions();save();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
    selectedStudents.clear();selectedContactStudents.clear();box.remove();renderAll();
-   alert('備份已檢查並匯入完成。');
+   alert('備份已檢查並覆蓋匯入完成。');
  });
- actions.append(cancel,ok);box.append(msg,actions);
+ actions.append(cancel,merge,replace);box.append(msg,actions);
  const header=document.querySelector('.topbar');header.insertAdjacentElement('afterend',box);
  box.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
