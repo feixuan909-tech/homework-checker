@@ -450,7 +450,7 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
 @media(max-width:600px){.direct-progress>.page-inline.active{flex-wrap:wrap}.direct-progress>.page-inline.active .skip-pages-wrap{width:100%}}
 
 
-/* v5.39：手機 Chrome 相容模式。
+/* v5.40：手機 Chrome 相容＋緊湊格距模式。
    某些手機瀏覽器會回報較寬的 layout viewport，因此除了 max-width，
    也由 JS 以觸控 + 實體螢幕短邊判定 phone，套用 html.mobile-ux。 */
 html.mobile-ux .mobile-only{display:flex}
@@ -466,15 +466,15 @@ html.mobile-ux #mobileMoreMenu.show{display:flex}
 html.mobile-ux #mobileMoreMenu>.btn,html.mobile-ux #mobileMoreMenu>.import-label{flex:1 1 145px;text-align:center;justify-content:center}
 html.mobile-ux .mobile-category-head{align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
 html.mobile-ux #catList.mobile-collapsed{display:none}
-html.mobile-ux .cat-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-html.mobile-ux .cat-item{min-width:0;padding:9px 5px;justify-content:center;text-align:center}
+html.mobile-ux .cat-list{display:grid;grid-template-columns:repeat(3,92px);gap:7px 9px;justify-content:start}
+html.mobile-ux .cat-item{width:92px;min-width:0;padding:9px 5px;justify-content:center;text-align:center}
 html.mobile-ux .cat-name{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html.mobile-ux .cat-date{font-size:10px}
 html.mobile-ux .cat-current-badge{font-size:9px;padding:3px 4px}
-html.mobile-ux .grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;width:100%;justify-content:stretch}
-html.mobile-ux .num{width:100%;max-width:48px;aspect-ratio:1/1;height:auto;min-width:0;justify-self:center;font-size:15px}
-html.mobile-ux .leave-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:100%}
-html.mobile-ux .leave-chip{width:100%;min-width:0;padding:6px 0;text-align:center}
+html.mobile-ux .grid{grid-template-columns:repeat(7,48px);gap:7px 8px;width:auto;justify-content:start}
+html.mobile-ux .num{width:48px;height:48px;aspect-ratio:auto;min-width:48px;justify-self:start;font-size:15px}
+html.mobile-ux .leave-row{display:grid;grid-template-columns:repeat(7,48px);gap:6px 8px;width:auto;justify-content:start}
+html.mobile-ux .leave-chip{width:48px;min-width:48px;padding:6px 0;text-align:center}
 html.mobile-ux .progress-mobile-tabs{gap:6px;margin-bottom:9px}
 html.mobile-ux .progress-mobile-tabs .btn{flex:1;padding:8px 5px}
 html.mobile-ux .progress-mobile-tabs .btn.active{background:#eaf4ff;border-color:#8fc5f5;color:#1269aa;font-weight:800}
@@ -495,12 +495,12 @@ html.mobile-ux .history-table{width:max-content;min-width:100%}
 html.mobile-ux .history-table th,html.mobile-ux .history-table td{min-width:50px;height:30px;padding:2px 4px}
 html.mobile-ux .history-table th:first-child,html.mobile-ux .history-table td:first-child{min-width:40px;width:40px}
 html.mobile-ux .student-panel,html.mobile-ux .overview-panel,html.mobile-ux .cloud-panel{margin-left:8px;margin-right:8px}
-@media(max-width:390px){html.mobile-ux .cat-list{grid-template-columns:repeat(3,minmax(0,1fr))}html.mobile-ux .grid{gap:5px}html.mobile-ux .num{font-size:14px}}
+@media(max-width:390px){html.mobile-ux .cat-list{grid-template-columns:repeat(3,86px);gap:6px 7px}html.mobile-ux .cat-item{width:86px}html.mobile-ux .grid{grid-template-columns:repeat(7,44px);gap:6px 5px}html.mobile-ux .num{width:44px;height:44px;min-width:44px;font-size:14px}html.mobile-ux .leave-row{grid-template-columns:repeat(7,44px);gap:5px}html.mobile-ux .leave-chip{width:44px;min-width:44px}}
 
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.39</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.40</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
