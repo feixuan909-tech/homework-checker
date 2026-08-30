@@ -585,7 +585,7 @@ html.mobile-ux .cat-list.editing .category-delete{white-space:nowrap!important}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.46</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.47</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -2277,6 +2277,19 @@ const ui={
 const bridge=window.hwCloudBridge;
 let firebaseReady=false,auth=null,db=null,currentUser=null,docRef=null,unsubscribe=null;
 let queueTimer=null,applyingRemote=false,lastRemoteToken='',baseRemoteToken='',pendingUploadToken='',cloudExists=false,syncConflict=false;
+const CLOUD_BASE_TOKEN_KEY='hwCheckerCloudBaseTokenV1';
+const CLOUD_DEVICE_ID_KEY='hwCheckerCloudDeviceIdV1';
+function getDeviceId(){
+ let id=localStorage.getItem(CLOUD_DEVICE_ID_KEY)||'';
+ if(!id){
+   try{id=crypto.randomUUID()}catch{id='dev-'+Date.now()+'-'+Math.random().toString(36).slice(2)}
+   localStorage.setItem(CLOUD_DEVICE_ID_KEY,id);
+ }
+ return id;
+}
+const DEVICE_ID=getDeviceId();
+function persistedBaseToken(){return localStorage.getItem(CLOUD_BASE_TOKEN_KEY)||''}
+function rememberBaseToken(token){localStorage.setItem(CLOUD_BASE_TOKEN_KEY,String(token||''))}
 
 function setStatus(shortText,longText,kind=''){
  if(ui.short)ui.short.textContent=shortText;
@@ -2336,11 +2349,20 @@ async function initFirebase(){
        return;
      }
      if(bridge?.isDirty?.()){
-       syncConflict=true;
-       setStatus('請選同步方向','這台裝置和雲端都有資料。為避免覆蓋，請選「以這台裝置為準上傳」或「從雲端載入」。','wait');
+       const savedBase=persistedBaseToken();
+       const remoteToken=snapshotToken(snap);
+       if(savedBase&&savedBase===remoteToken){
+         baseRemoteToken=savedBase;
+         startListener();
+         queuePush();
+       }else{
+         syncConflict=true;
+         setStatus('請選同步方向','這台裝置有尚未同步的修改，而且雲端版本與上次同步基準不同。為避免覆蓋，請選「以這台裝置為準上傳」或「從雲端載入」。','wait');
+       }
        return;
      }
      applySnapshot(snap);
+     rememberBaseToken(snapshotToken(snap));
      startListener();
    });
  }catch(err){
@@ -2363,6 +2385,7 @@ function startListener(){
    if(bridge?.isDirty?.()&&!ownUpdate){enterSyncConflict();return}
    syncConflict=false;
    applySnapshot(snap);baseRemoteToken=token;
+   if(!bridge?.isDirty?.()&&!snap.metadata.fromCache)rememberBaseToken(token);
    setStatus(snap.metadata.fromCache?'離線快取':'已同步',
      snap.metadata.fromCache?'目前顯示快取資料；恢復網路後會再同步。':'此裝置已和雲端同步。',snap.metadata.fromCache?'wait':'ok');
  });
@@ -2380,20 +2403,29 @@ function applySnapshot(snap){
 async function uploadNow(force=false){
  if(!currentUser||!docRef||applyingRemote)return;
  if(syncConflict&&!force){enterSyncConflict();return}
- const {setDoc,serverTimestamp,runTransaction}=window.__HW_FIREBASE.fsMod;
+ const {setDoc,serverTimestamp,runTransaction,getDocFromServer}=window.__HW_FIREBASE.fsMod;
  const payload=bridge?.getState?.();if(!payload)return;
- const token=Date.now(),newToken=String(token)+'|'+currentUser.uid;
- const docData={schema:1,state:payload,ownerUid:currentUser.uid,clientUpdatedAt:token,writer:currentUser.uid,serverUpdatedAt:serverTimestamp()};
+ const token=Date.now(),newToken=String(token)+'|'+DEVICE_ID;
+ const docData={schema:1,state:payload,ownerUid:currentUser.uid,clientUpdatedAt:token,writer:DEVICE_ID,serverUpdatedAt:serverTimestamp()};
  pendingUploadToken=newToken;
  setStatus('正在同步','正在把這台裝置的紀錄安全地寫入雲端…','wait');
  try{
   if(force)await setDoc(docRef,docData,{merge:false});
-  else await runTransaction(db,async tx=>{
-   const current=await tx.get(docRef),remoteToken=snapshotToken(current);
-   if(current.exists()&&remoteToken!==baseRemoteToken){const err=new Error('SYNC_CONFLICT');err.code='HW_SYNC_CONFLICT';throw err}
-   tx.set(docRef,docData,{merge:false});
-  });
-  cloudExists=true;lastRemoteToken=newToken;baseRemoteToken=newToken;pendingUploadToken='';syncConflict=false;bridge?.markSynced?.();setButtons();
+  else{
+   // v5.47：先向伺服器確認目前版本，再進 transaction。
+   // 這能避免手機離線後恢復網路時，監聽器與自動上傳競速而漏掉衝突。
+   const baseline=persistedBaseToken()||baseRemoteToken;
+   const serverSnap=await getDocFromServer(docRef);
+   const serverToken=snapshotToken(serverSnap);
+   if(serverSnap.exists()&&baseline&&serverToken!==baseline){const err=new Error('SYNC_CONFLICT');err.code='HW_SYNC_CONFLICT';throw err}
+   baseRemoteToken=baseline||serverToken;
+   await runTransaction(db,async tx=>{
+    const current=await tx.get(docRef),remoteToken=snapshotToken(current);
+    if(current.exists()&&remoteToken!==baseRemoteToken){const err=new Error('SYNC_CONFLICT');err.code='HW_SYNC_CONFLICT';throw err}
+    tx.set(docRef,docData,{merge:false});
+   });
+  }
+  cloudExists=true;lastRemoteToken=newToken;baseRemoteToken=newToken;rememberBaseToken(newToken);pendingUploadToken='';syncConflict=false;bridge?.markSynced?.();setButtons();
   setStatus('已同步','這台裝置的紀錄已寫入雲端。','ok');
  }catch(err){
   pendingUploadToken='';
@@ -2406,7 +2438,7 @@ async function downloadNow(){
  const {getDoc}=window.__HW_FIREBASE.fsMod;
  const snap=await getDoc(docRef);
  if(!snap.exists()){setStatus('雲端沒有資料','目前雲端沒有可下載的紀錄。','wait');return}
- syncConflict=false;applySnapshot(snap);baseRemoteToken=snapshotToken(snap);bridge?.markSynced?.();startListener();
+ syncConflict=false;applySnapshot(snap);baseRemoteToken=snapshotToken(snap);rememberBaseToken(baseRemoteToken);bridge?.markSynced?.();startListener();
  setStatus('已同步','已從雲端載入最新紀錄；這台裝置的臨時草稿仍保留。','ok');
 }
 function queuePush(){
@@ -2419,7 +2451,12 @@ function queuePush(){
    setStatus('等待網路','雲端暫時無法寫入；本機資料仍保留，恢復網路後會再嘗試同步。','err');
  }),700);
 }
-window.addEventListener('online',()=>{if(currentUser&&docRef&&!syncConflict&&bridge?.isDirty?.())queuePush()});
+window.addEventListener('online',()=>{
+ if(currentUser&&docRef&&!syncConflict&&bridge?.isDirty?.()){
+   setStatus('重新檢查雲端','網路已恢復，正在確認離線期間雲端是否有其他更新…','wait');
+   queuePush();
+ }
+});
 async function signIn(){
  if(!firebaseReady||!auth)return;
  const {GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence,browserSessionPersistence}=window.__HW_FIREBASE.authMod;
