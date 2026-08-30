@@ -585,7 +585,7 @@ html.mobile-ux .cat-list.editing .category-delete{white-space:nowrap!important}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.48</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.49</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -2282,6 +2282,27 @@ let firebaseReady=false,auth=null,db=null,currentUser=null,docRef=null,unsubscri
 let queueTimer=null,applyingRemote=false,lastRemoteToken='',baseRemoteToken='',pendingUploadToken='',cloudExists=false,syncConflict=false;
 const CLOUD_BASE_TOKEN_KEY='hwCheckerCloudBaseTokenV1';
 const CLOUD_DEVICE_ID_KEY='hwCheckerCloudDeviceIdV1';
+// Firestore 單一文件上限為 1 MiB。JSON 位元組數不是 Firestore 實際編碼大小，
+// 因此採保守門檻：700 KiB 起提醒、850 KiB 起禁止雲端寫入，保留安全緩衝。
+const CLOUD_WARN_BYTES=700*1024;
+const CLOUD_BLOCK_BYTES=850*1024;
+function estimateCloudBytes(state){
+ try{return new TextEncoder().encode(JSON.stringify({schema:1,state,ownerUid:currentUser?.uid||'',clientUpdatedAt:Date.now(),writer:DEVICE_ID})).length}
+ catch{return Number.POSITIVE_INFINITY}
+}
+function formatKiB(bytes){return Number.isFinite(bytes)?`${Math.ceil(bytes/1024)} KiB`:'無法估算'}
+function cloudSizeInfo(state){
+ const bytes=estimateCloudBytes(state);
+ return {bytes,warn:bytes>=CLOUD_WARN_BYTES,block:bytes>=CLOUD_BLOCK_BYTES};
+}
+function isLikelyNetworkError(err){
+ const code=String(err?.code||'').toLowerCase(),msg=String(err?.message||'').toLowerCase();
+ return ['unavailable','deadline-exceeded','network-request-failed','cancelled'].some(x=>code.includes(x))||/network|offline|internet|failed to fetch|connection/.test(msg);
+}
+function isLikelySizeWriteError(err){
+ const code=String(err?.code||'').toLowerCase(),msg=String(err?.message||'').toLowerCase();
+ return code.includes('resource-exhausted')||/maximum.*size|too large|document.*size|1048576|longer than/.test(msg);
+}
 function getDeviceId(){
  let id=localStorage.getItem(CLOUD_DEVICE_ID_KEY)||'';
  if(!id){
@@ -2459,9 +2480,10 @@ async function mergeNow(){
    // applyRemote 會保留本機 drafts；再標 dirty，讓合併結果成為待上傳正式資料。
    bridge?.applyRemote?.(result.state);
    localStorage.setItem('hwCheckerCloudDirtyV1','1');
-   syncConflict=false;
-   // 強制寫回是使用者已明確確認的合併結果。
-   await uploadNow(true);startListener();
+   // 強制寫回是使用者已明確確認的合併結果；若容量防護阻擋，保留衝突狀態與本機資料。
+   const mergedUploaded=await uploadNow(true);
+   if(!mergedUploaded)return;
+   startListener();
    setStatus('已安全合併','本機與雲端不同的紀錄已整合並同步；本機臨時草稿仍保留。','ok');
  }catch(err){
    console.error('cloud merge failed',err);enterSyncConflict();
@@ -2472,10 +2494,19 @@ async function uploadNow(force=false){
  if(syncConflict&&!force){enterSyncConflict();return}
  const {setDoc,serverTimestamp,runTransaction,getDocFromServer}=window.__HW_FIREBASE.fsMod;
  const payload=bridge?.getState?.();if(!payload)return;
+ const sizeInfo=cloudSizeInfo(payload);
+ if(sizeInfo.block){
+   clearTimeout(queueTimer);queueTimer=null;pendingUploadToken='';
+   setStatus('雲端資料容量過大',`目前待同步資料約 ${formatKiB(sizeInfo.bytes)}，已超過本工具的安全上傳門檻。為避免 Firestore 寫入失敗，已停止雲端上傳；本機資料仍完整保留。請先按「匯出備份」保存 JSON，再整理較舊歷史紀錄。`,'err');
+   setButtons();
+   return false;
+ }
  const token=Date.now(),newToken=String(token)+'|'+DEVICE_ID;
  const docData={schema:1,state:payload,ownerUid:currentUser.uid,clientUpdatedAt:token,writer:DEVICE_ID,serverUpdatedAt:serverTimestamp()};
  pendingUploadToken=newToken;
- setStatus('正在同步','正在把這台裝置的紀錄安全地寫入雲端…','wait');
+ setStatus(sizeInfo.warn?'資料量偏大，正在同步':'正在同步',sizeInfo.warn
+   ?`目前待同步資料約 ${formatKiB(sizeInfo.bytes)}，已接近單一雲端文件的安全容量；這次仍會嘗試同步，建議近期匯出 JSON 備份並整理舊紀錄。`
+   :'正在把這台裝置的紀錄安全地寫入雲端…','wait');
  try{
   if(force)await setDoc(docRef,docData,{merge:false});
   else{
@@ -2493,10 +2524,17 @@ async function uploadNow(force=false){
    });
   }
   cloudExists=true;lastRemoteToken=newToken;baseRemoteToken=newToken;rememberBaseToken(newToken);pendingUploadToken='';syncConflict=false;bridge?.markSynced?.();setButtons();
-  setStatus('已同步','這台裝置的紀錄已寫入雲端。','ok');
+  setStatus(sizeInfo.warn?'已同步・容量偏高':'已同步',sizeInfo.warn
+    ?`已成功同步；目前雲端資料估計約 ${formatKiB(sizeInfo.bytes)}。建議先匯出 JSON 備份，並在方便時整理較舊歷史紀錄。`
+    :'這台裝置的紀錄已寫入雲端。',sizeInfo.warn?'wait':'ok');
+  return true;
  }catch(err){
   pendingUploadToken='';
-  if(err?.code==='HW_SYNC_CONFLICT'||String(err?.message||'').includes('SYNC_CONFLICT')){enterSyncConflict();return}
+  if(err?.code==='HW_SYNC_CONFLICT'||String(err?.message||'').includes('SYNC_CONFLICT')){enterSyncConflict();return false}
+  if(isLikelySizeWriteError(err)){
+    setStatus('雲端寫入容量錯誤','Firebase 回報資料量可能過大；本機資料仍完整保留。請先按「匯出備份」保存 JSON，再整理舊歷史紀錄後重試。','err');
+    return false;
+  }
   throw err;
  }
 }
@@ -2515,7 +2553,13 @@ function queuePush(){
  setStatus('等待同步','本機已儲存，準備同步到雲端…','wait');
  queueTimer=setTimeout(()=>uploadNow(false).catch(err=>{
    console.error('cloud upload failed',err);
-   setStatus('等待網路','雲端暫時無法寫入；本機資料仍保留，恢復網路後會再嘗試同步。','err');
+   if(isLikelyNetworkError(err)){
+     setStatus('等待網路','目前看起來是網路／Firebase 暫時無法連線；本機資料仍保留，恢復網路後會再嘗試同步。','err');
+   }else if(isLikelySizeWriteError(err)){
+     setStatus('雲端寫入容量錯誤','Firebase 回報資料量可能過大；本機資料仍保留。請先匯出 JSON 備份，再整理較舊歷史紀錄。','err');
+   }else{
+     setStatus('雲端寫入失敗','Firebase 寫入沒有成功，但本機資料仍完整保留。請先匯出 JSON 備份，再檢查登入、Firestore 規則或稍後重試。','err');
+   }
  }),700);
 }
 window.addEventListener('online',()=>{
@@ -2547,7 +2591,8 @@ window.hwCloud={
     ?'⚠️ 這會用「這台裝置」的整份正式資料覆蓋雲端版本。\n\n雲端上由其他裝置新增或修改、但這台沒有的資料可能會消失。若想保留兩邊資料，請取消並改用「安全合併」。\n\n確定仍要覆蓋雲端嗎？'
     :'確定要用「這台裝置」目前的正式資料覆蓋雲端版本嗎？';
    if(!confirm(msg))return;
-   syncConflict=false;await uploadNow(true);startListener();
+   const uploaded=await uploadNow(true);
+   if(uploaded)startListener();
  },
  manualDownload:async()=>{
    if(!currentUser)return;
