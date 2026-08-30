@@ -448,10 +448,59 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
 
 .skip-pages-toggle{white-space:nowrap}.skip-pages-wrap{display:none;flex:1 1 100%;gap:4px;flex-direction:column;margin-top:6px}.skip-pages-wrap.show{display:flex}.skip-pages-wrap .hint{font-size:12px;color:var(--muted)}
 @media(max-width:600px){.direct-progress>.page-inline.active{flex-wrap:wrap}.direct-progress>.page-inline.active .skip-pages-wrap{width:100%}}
+
+
+/* v5.39：手機 Chrome 相容模式。
+   某些手機瀏覽器會回報較寬的 layout viewport，因此除了 max-width，
+   也由 JS 以觸控 + 實體螢幕短邊判定 phone，套用 html.mobile-ux。 */
+html.mobile-ux .mobile-only{display:flex}
+html.mobile-ux .main{grid-template-columns:1fr;padding:8px;gap:10px}
+html.mobile-ux .sidebar{position:static;top:auto;max-height:none;overflow:visible;scrollbar-gutter:auto;padding:10px}
+html.mobile-ux .topbar{gap:6px;padding:10px 12px}
+html.mobile-ux .brand{font-size:25px}
+html.mobile-ux .brand-plus{width:20px;height:20px;font-size:14px;transform:translateY(-7px)}
+html.mobile-ux .brand-version{display:none}
+html.mobile-ux #mobileMoreBtn{display:inline-flex;margin-left:auto}
+html.mobile-ux #mobileMoreMenu{display:none;width:100%;gap:6px;flex-wrap:wrap;padding-top:4px}
+html.mobile-ux #mobileMoreMenu.show{display:flex}
+html.mobile-ux #mobileMoreMenu>.btn,html.mobile-ux #mobileMoreMenu>.import-label{flex:1 1 145px;text-align:center;justify-content:center}
+html.mobile-ux .mobile-category-head{align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+html.mobile-ux #catList.mobile-collapsed{display:none}
+html.mobile-ux .cat-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+html.mobile-ux .cat-item{min-width:0;padding:9px 5px;justify-content:center;text-align:center}
+html.mobile-ux .cat-name{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.mobile-ux .cat-date{font-size:10px}
+html.mobile-ux .cat-current-badge{font-size:9px;padding:3px 4px}
+html.mobile-ux .grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;width:100%;justify-content:stretch}
+html.mobile-ux .num{width:100%;max-width:48px;aspect-ratio:1/1;height:auto;min-width:0;justify-self:center;font-size:15px}
+html.mobile-ux .leave-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:100%}
+html.mobile-ux .leave-chip{width:100%;min-width:0;padding:6px 0;text-align:center}
+html.mobile-ux .progress-mobile-tabs{gap:6px;margin-bottom:9px}
+html.mobile-ux .progress-mobile-tabs .btn{flex:1;padding:8px 5px}
+html.mobile-ux .progress-mobile-tabs .btn.active{background:#eaf4ff;border-color:#8fc5f5;color:#1269aa;font-weight:800}
+html.mobile-ux .direct-progress{display:block!important}
+html.mobile-ux .direct-progress>.progress-label{display:none}
+html.mobile-ux .direct-progress>.progress-mode-group{display:none!important;width:100%;margin:0}
+html.mobile-ux .direct-progress>.progress-mode-group.active{display:flex!important}
+html.mobile-ux .direct-progress>.unit-inline.active{display:grid!important;grid-template-columns:72px 1fr;gap:6px}
+html.mobile-ux .direct-progress>.unit-inline.active #unitDetail{grid-column:1/-1;width:100%;max-width:none}
+html.mobile-ux .direct-progress>.page-inline.active{align-items:center;gap:6px;flex-wrap:wrap}
+html.mobile-ux .direct-progress>.page-inline.active .skip-pages-wrap{width:100%}
+html.mobile-ux .direct-progress>.free-inline.active{display:block!important}
+html.mobile-ux .direct-progress>.free-inline.active input{width:100%}
+html.mobile-ux .field.grow{flex:1 1 100%}
+html.mobile-ux .statusbar{position:sticky;top:0;background:#fff;padding:8px 0;z-index:10}
+html.mobile-ux .history-table-wrap{overflow-x:auto;overflow-y:visible;max-width:100%}
+html.mobile-ux .history-table{width:max-content;min-width:100%}
+html.mobile-ux .history-table th,html.mobile-ux .history-table td{min-width:50px;height:30px;padding:2px 4px}
+html.mobile-ux .history-table th:first-child,html.mobile-ux .history-table td:first-child{min-width:40px;width:40px}
+html.mobile-ux .student-panel,html.mobile-ux .overview-panel,html.mobile-ux .cloud-panel{margin-left:8px;margin-right:8px}
+@media(max-width:390px){html.mobile-ux .cat-list{grid-template-columns:repeat(3,minmax(0,1fr))}html.mobile-ux .grid{gap:5px}html.mobile-ux .num{font-size:14px}}
+
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.36</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.39</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -836,7 +885,13 @@ function fmtDate(d){if(!d)return'';const[,m,day]=d.split('-');return`${Number(m)
 
 const MOBILE_UX_MAX=600;
 let mobileCategoriesCollapsed=false;
-function isMobileUX(){return window.matchMedia(`(max-width:${MOBILE_UX_MAX}px)`).matches}
+function isMobileUX(){
+ const narrowViewport=window.matchMedia(`(max-width:${MOBILE_UX_MAX}px)`).matches;
+ const coarsePointer=window.matchMedia('(pointer:coarse)').matches||window.matchMedia('(any-pointer:coarse)').matches;
+ const shortScreen=Math.min(Number(screen.width)||9999,Number(screen.height)||9999)<=600;
+ return narrowViewport||(coarsePointer&&shortScreen);
+}
+function syncMobileUXClass(){document.documentElement.classList.toggle('mobile-ux',isMobileUX())}
 function updateMobileCategoryUI(){
  const name=$('mobileCurrentCategory');if(name)name.textContent=currentCat()?.name||'—';
  const list=$('catList'),btn=$('mobileCategoryToggleBtn');if(!list||!btn)return;
@@ -1975,8 +2030,10 @@ $('mobileMoreBtn').addEventListener('click',()=>{
  menu.classList.toggle('show',show);btn.textContent=show?'更多 ▴':'更多 ▾';btn.setAttribute('aria-expanded',show?'true':'false');
 });
 $('mobileCategoryToggleBtn').addEventListener('click',()=>{mobileCategoriesCollapsed=!mobileCategoriesCollapsed;updateMobileCategoryUI()});
+syncMobileUXClass();
 setupMobileTopbar();
-window.addEventListener('resize',()=>{setupMobileTopbar();updateMobileCategoryUI()});
+window.addEventListener('resize',()=>{syncMobileUXClass();setupMobileTopbar();updateMobileCategoryUI()});
+window.addEventListener('orientationchange',()=>setTimeout(()=>{syncMobileUXClass();setupMobileTopbar();updateMobileCategoryUI()},80));
 $('contactCollapseBtn').addEventListener('click',()=>setContactCollapsed(!contactCollapsed));
 $('homeworkEntryCollapseBtn').addEventListener('click',()=>{
  const body=$('homeworkEntryBody'),btn=$('homeworkEntryCollapseBtn');
