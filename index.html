@@ -366,7 +366,7 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
 .progress-validation{display:none;margin-top:7px;padding:8px 10px;border-radius:8px;background:#fff1f1;border:1px solid #efb4b4;color:#a32626;font-size:13px;font-weight:700}
 .progress-validation.show{display:block}
 
-/* v5.35：修正本次進度欄位擠壓重疊 */
+/* v5.38：修正本次進度欄位擠壓重疊 */
 .direct-progress{
   grid-template-columns:auto minmax(190px,auto) auto minmax(360px,1fr) !important;
   align-items:center;
@@ -417,10 +417,41 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
   .direct-progress #unitDetail{grid-column:1/-1;width:100%;max-width:none}
 }
 
+
+/* v5.38：手機專用 UX；桌機/平板維持原配置 */
+.mobile-only{display:none}
+@media(max-width:600px){
+ .mobile-only{display:flex}
+ .topbar{gap:6px}
+ #mobileMoreBtn{display:inline-flex;margin-left:auto}
+ #mobileMoreMenu{display:none;width:100%;gap:6px;flex-wrap:wrap;padding-top:4px}
+ #mobileMoreMenu.show{display:flex}
+ #mobileMoreMenu>.btn,#mobileMoreMenu>.import-label{flex:1 1 145px;text-align:center;justify-content:center}
+ .mobile-category-head{align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+ .mobile-category-current{font-weight:800}
+ #catList.mobile-collapsed{display:none}
+ .progress-mobile-tabs{gap:6px;margin-bottom:9px}
+ .progress-mobile-tabs .btn{flex:1;padding:8px 5px}
+ .progress-mobile-tabs .btn.active{background:#eaf4ff;border-color:#8fc5f5;color:#1269aa;font-weight:800}
+ .direct-progress>.progress-label{display:none}
+ .direct-progress>.progress-mode-group{display:none !important}
+ .direct-progress>.progress-mode-group.active{display:flex !important}
+ .direct-progress{display:block !important}
+ .direct-progress>.progress-mode-group{width:100%;margin:0}
+ .direct-progress>.unit-inline.active{display:grid !important;grid-template-columns:72px 1fr;gap:6px}
+ .direct-progress>.unit-inline.active #unitDetail{grid-column:1/-1;width:100%;max-width:none}
+ .direct-progress>.page-inline.active{align-items:center;gap:6px}
+ .direct-progress>.free-inline.active{display:block !important}
+ .direct-progress>.free-inline.active input{width:100%}
+}
+
+
+.skip-pages-toggle{white-space:nowrap}.skip-pages-wrap{display:none;flex:1 1 100%;gap:4px;flex-direction:column;margin-top:6px}.skip-pages-wrap.show{display:flex}.skip-pages-wrap .hint{font-size:12px;color:var(--muted)}
+@media(max-width:600px){.direct-progress>.page-inline.active{flex-wrap:wrap}.direct-progress>.page-inline.active .skip-pages-wrap{width:100%}}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.35</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.36</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -481,7 +512,11 @@ button.overview-work-tag:focus-visible{outline:2px solid #2f80ed;outline-offset:
 <div class="main">
 <aside class="card sidebar">
   <div class="side-head"><b>類別</b><button id="categoryEditBtn" class="btn" type="button">✎ 編輯</button></div>
-  <div id="catList" class="cat-list"></div>
+  <div id="mobileCategoryHead" class="mobile-category-head mobile-only">
+<span class="mobile-category-current">目前：<span id="mobileCurrentCategory">—</span></span>
+<button id="mobileCategoryToggleBtn" class="btn" type="button" aria-expanded="true">收起類別 ▲</button>
+</div>
+<div id="catList" class="cat-list"></div>
 </aside>
 <main class="workspace">
 <section id="contactSection" class="card section">
@@ -683,7 +718,7 @@ function sanitizeState(raw,keepDrafts=false){
 }
 const CLOUD_DIRTY_KEY='hwCheckerCloudDirtyV1';
 let state;try{state=sanitizeState(JSON.parse(localStorage.getItem(STORE)||'null'),true)}catch{state=freshState()}
-let selectedStudents=new Set(),selectedStatus='blue',selectedContactStudents=new Set(),selectedContactStatus='blue',progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
+let selectedStudents=new Set(),selectedStatus='blue',selectedContactStudents=new Set(),selectedContactStatus='blue',progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
 function saveLocalOnly(){localStorage.setItem(STORE,JSON.stringify(state))}
 function save(){
  saveLocalOnly();
@@ -705,33 +740,51 @@ window.hwCloudBridge={
 };
 function currentCat(){return state.categories.find(c=>c.id===state.currentCategory)||state.categories[0]}
 function readProgressValues(){
- const paEl=$('pA'),pbEl=$('pB'),unitEl=$('unitNums'),typeEl=$('unitType'),detailEl=$('unitDetail'),freeEl=$('freeProgress');
+ const paEl=$('pA'),pbEl=$('pB'),skipEl=$('skipPages'),unitEl=$('unitNums'),typeEl=$('unitType'),detailEl=$('unitDetail'),freeEl=$('freeProgress');
  const pa=String(paEl?paEl.value:progress.a||'').replace(/\D/g,'').slice(0,4);
  const pb=String(pbEl?pbEl.value:progress.b||'').replace(/\D/g,'').slice(0,4);
- const unitRaw=String(unitEl?unitEl.value:progress.unitNums||'').replace(/[^0-9,\-]/g,'').slice(0,30);
+ const skipRaw=String(skipEl?skipEl.value:progress.skipPages||'').replace(/[^0-9,，、\-～]/g,'').replace(/，/g,',').slice(0,60);
+ const unitRaw=String(unitEl?unitEl.value:progress.unitNums||'').replace(/[^0-9,，、\-～]/g,'').replace(/，/g,',').slice(0,30);
  const unit=['L','Ch','U'].includes(typeEl?typeEl.value:progress.unit)?(typeEl?typeEl.value:progress.unit):'L';
  const unitDetail=['','生字','語詞＋綜合練習'].includes(detailEl?detailEl.value:progress.unitDetail)?(detailEl?detailEl.value:progress.unitDetail):'';
  const free=cleanText(freeEl?freeEl.value:progress.free||'',100);
- return {pa,pb,unitRaw,unit,unitDetail,free};
+ return {pa,pb,skipRaw,unitRaw,unit,unitDetail,free};
 }
 function buildContent(){
- const {pa,pb,unitRaw,unit,unitDetail,free}=readProgressValues();
- const used=(pa||pb?1:0)+(unitRaw?1:0)+(free?1:0);
+ const {pa,pb,skipRaw,unitRaw,unit,unitDetail,free}=readProgressValues();
+ const used=(pa||pb||skipRaw?1:0)+(unitRaw?1:0)+(free?1:0);
  if(used>1)return {error:'multi'};
- if(pa||pb){
+ if(pa||pb||skipRaw){
    if(!pa)return {error:'pageStart'};
-   if(pb&&Number(pa)>Number(pb))return {error:'range'};
-   return {content:pb&&pb!==pa?`P.${Number(pa)}～P.${Number(pb)}`:`P.${Number(pa)}`,type:'pages'};
+   const start=Number(pa),end=pb?Number(pb):start;
+   if(start>end)return {error:'range'};
+   const segments=[{start,end,label:start===end?`P.${start}`:`P.${start}～P.${end}`}];
+   if(skipRaw){
+     for(const token of skipRaw.split(/[、,]/).map(x=>x.trim()).filter(Boolean)){
+       let s,e;
+       if(/[-～]/.test(token)){
+         const pair=token.split(/[-～]/);
+         if(pair.length!==2||!/^\d+$/.test(pair[0])||!/^\d+$/.test(pair[1]))return {error:'skipFormat'};
+         s=Number(pair[0]);e=Number(pair[1]);if(s>e)return {error:'skipRange'};
+       }else{if(!/^\d+$/.test(token))return {error:'skipFormat'};s=e=Number(token)}
+       if(segments.some(seg=>Math.max(seg.start,s)<=Math.min(seg.end,e)))return {error:'pageOverlap',detail:s===e?`P.${s}`:`P.${s}～P.${e}`};
+       segments.push({start:s,end:e,label:s===e?`P.${s}`:`P.${s}～P.${e}`});
+     }
+   }
+   return {content:segments.map(x=>x.label).join('、'),type:'pages'};
  }
  if(unitRaw){
    const parts=[];
-   for(const part of unitRaw.split(',').filter(Boolean)){
-     if(part.includes('-')){
-       const[x,y]=part.split('-').map(x=>x.replace(/\D/g,''));
+   for(const part of unitRaw.split(/[、,]/).filter(Boolean)){
+     if(/[-～]/.test(part)){
+       const pair=part.split(/[-～]/);
+       if(pair.length!==2)return {error:'range'};
+       const[x,y]=pair.map(x=>x.replace(/\D/g,''));
        if(!x||!y||Number(x)>Number(y))return {error:'range'};
        parts.push(`${unit}${Number(x)}～${unit}${Number(y)}`);
      }else{
        const n=part.replace(/\D/g,''); if(n)parts.push(`${unit}${Number(n)}`);
+       else return {error:'unit'};
      }
    }
    return {content:parts.join('、')+(unitDetail?' '+unitDetail:''),type:'unit'};
@@ -743,7 +796,11 @@ function buildContent(){
 function progressErrorText(result=buildContent()){
  if(result?.error==='multi')return '頁數、單元、自由輸入只能擇一填寫，請清除其中一種後再儲存。';
  if(result?.error==='pageStart')return '已填寫迄頁時，也要填寫起始頁。';
- if(result?.error==='range')return '進度起始數字不可大於結束數字。';
+ if(result?.error==='pageOverlap')return `頁數重複：${result.detail||'輸入範圍'} 已和前面的頁數重疊，請確認。`;
+ if(result?.error==='skipRange')return '跳頁範圍的起始頁不可大於結束頁。';
+ if(result?.error==='skipFormat')return '跳頁格式不正確，可輸入例如「18、20～22」或「18,20-22」。';
+ if(result?.error==='range')return '單元或頁數範圍格式不正確，且起始數字不可大於結束數字。';
+ if(result?.error==='unit')return '單元請輸入數字，可用「、」或「,」分隔，也可用「～」或「-」輸入範圍。';
  return '';
 }
 function renderProgressValidation(){
@@ -776,7 +833,33 @@ function compareHistory(a,b){
 function latestRecord(catId){return state.history.filter(h=>h.catId===catId).sort(compareHistory)[0]||null}
 function recordHasPending(h){if(!h)return false;for(let n=1;n<=state.studentCount;n++){const st=h.statuses[n];if(['red','yellow','green','ring'].includes(st)&&!h.resolved?.[n])return true}return false}
 function fmtDate(d){if(!d)return'';const[,m,day]=d.split('-');return`${Number(m)}/${Number(day)}`}
-function renderAll(){refreshToday();$('studentCount').value=state.studentCount;if(!$('recordDate').value)$('recordDate').value=TODAY;if(selectedStudentSeat>state.studentCount)selectedStudentSeat=state.studentCount;renderCats();renderProgress();renderHistoryMainEditBanner();renderContact();renderStudentGrid();renderOverview();renderStudentRecord();renderTable();renderCurrentCategorySummary()}
+
+const MOBILE_UX_MAX=600;
+let mobileCategoriesCollapsed=false;
+function isMobileUX(){return window.matchMedia(`(max-width:${MOBILE_UX_MAX}px)`).matches}
+function updateMobileCategoryUI(){
+ const name=$('mobileCurrentCategory');if(name)name.textContent=currentCat()?.name||'—';
+ const list=$('catList'),btn=$('mobileCategoryToggleBtn');if(!list||!btn)return;
+ list.classList.toggle('mobile-collapsed',isMobileUX()&&mobileCategoriesCollapsed);
+ btn.textContent=mobileCategoriesCollapsed?'更換類別 ▼':'收起類別 ▲';
+ btn.setAttribute('aria-expanded',mobileCategoriesCollapsed?'false':'true');
+}
+function setupMobileTopbar(){
+ const menu=$('mobileMoreMenu'),more=$('mobileMoreBtn');if(!menu||!more)return;
+ const ids=['exportBtn','studentToggleBtn','overviewToggleBtn'];
+ const importLabel=document.querySelector('.import-label');
+ const header=more.parentElement;
+ if(isMobileUX()){
+   ids.forEach(id=>{const el=$(id);if(el&&el.parentElement!==menu)menu.appendChild(el)});
+   if(importLabel&&importLabel.parentElement!==menu)menu.appendChild(importLabel);
+ }else{
+   const before=more;
+   const ordered=[$('exportBtn'),importLabel,$('studentToggleBtn'),$('overviewToggleBtn')].filter(Boolean);
+   ordered.forEach(el=>{if(el.parentElement===menu)header.insertBefore(el,before)});
+   menu.classList.remove('show');more.textContent='更多 ▾';more.setAttribute('aria-expanded','false');
+ }
+}
+function renderAll(){refreshToday();$('studentCount').value=state.studentCount;if(!$('recordDate').value)$('recordDate').value=TODAY;if(selectedStudentSeat>state.studentCount)selectedStudentSeat=state.studentCount;renderCats();updateMobileCategoryUI();renderProgress();renderHistoryMainEditBanner();renderContact();renderStudentGrid();renderOverview();renderStudentRecord();renderTable();renderCurrentCategorySummary()}
 let categoryEditMode=false;
 let selectedStudentSeat=1;
 let historyOkEditId='';
@@ -937,7 +1020,7 @@ function moveCategoryBefore(dragId,targetId){
 }
 function selectCategory(id){
  if(!state.categories.some(c=>String(c.id)===String(id)))return;
- state.currentCategory=id;historyOkEditId='';historyOkPending.clear();cancelHistoryRecordEdit(false);selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};save();renderAll()
+ state.currentCategory=id;historyOkEditId='';historyOkPending.clear();cancelHistoryRecordEdit(false);selectedStudents.clear();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};save();if(isMobileUX())mobileCategoriesCollapsed=true;renderAll();if(isMobileUX())setTimeout(()=>$('homeworkEntrySection')?.scrollIntoView({behavior:'smooth',block:'start'}),50)
 }
 function toggleCategoryManager(){
  if(categoryEditMode){
@@ -1002,22 +1085,26 @@ function deleteCategoryById(id){
 
  save();
  selectedStudents.clear();
- progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
+ progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
  renderAll();
  renderCats();
 }
 
 function progressFromHistory(h){
  const content=String(h?.content||'').trim();
- if(!content)return {a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
- let m=content.match(/^P\.(\d+)(?:～P\.(\d+))?$/);
- if(m)return {a:m[1]||'',b:m[2]||'',unit:'L',unitNums:'',unitDetail:'',free:''};
+ if(!content)return {a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
+ let m=null;
+ if(/^P\.\d+/.test(content)){
+   const chunks=content.split('、').map(x=>x.trim()).filter(Boolean);
+   m=chunks[0].match(/^P\.(\d+)(?:～P\.(\d+))?$/);
+   if(m)return {a:m[1]||'',b:m[2]||'',skipPages:chunks.slice(1).map(x=>x.replace(/P\./g,'')).join('、'),unit:'L',unitNums:'',unitDetail:'',free:''};
+ }
  let detail='',unitContent=content;
  if(/\s生字$/.test(unitContent)){detail='生字';unitContent=unitContent.replace(/\s生字$/,'')}
  else if(/\s語詞＋綜合練習$/.test(unitContent)){detail='語詞＋綜合練習';unitContent=unitContent.replace(/\s語詞＋綜合練習$/,'')}
  m=unitContent.match(/^(L|Ch|U)(.+)$/);
  if(m){
-   const unit=m[1],rest=m[2].replace(new RegExp(unit,'g'),'').replace(/～/g,'-').replace(/、/g,',').replace(/[^0-9,\-]/g,'').slice(0,30);
+   const unit=m[1],rest=m[2].replace(new RegExp(unit,'g'),'').replace(/[^0-9,、\-～]/g,'').slice(0,30);
    if(rest)return {a:'',b:'',unit,unitNums:rest,unitDetail:detail,free:''};
  }
  return {a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:content.slice(0,100)};
@@ -1036,22 +1123,43 @@ function renderHistoryMainEditBanner(){
  $('updateHomeworkBtn').textContent='儲存歷史修改';
 }
 function renderProgress(){
- $('progressEditor').innerHTML=`
+ $('progressEditor').innerHTML=`<div class="progress-mobile-tabs mobile-only">
+   <button class="btn progress-mode-btn" type="button" data-mode="pages">頁數</button>
+   <button class="btn progress-mode-btn" type="button" data-mode="unit">單元</button>
+   <button class="btn progress-mode-btn" type="button" data-mode="free">自由輸入</button>
+   </div>
    <span class="progress-label">頁數</span>
-   <div class="page-inline"><span>P.</span><input id="pA" class="mini-input" inputmode="numeric" placeholder="起頁" value="${esc(progress.a||'')}"><span>～</span><span>P.</span><input id="pB" class="mini-input" inputmode="numeric" placeholder="迄頁" value="${esc(progress.b||'')}"></div>
+   <div class="page-inline progress-mode-group" data-progress-mode="pages"><span>P.</span><input id="pA" class="mini-input" inputmode="numeric" placeholder="起頁" value="${esc(progress.a||'')}"><span>～</span><span>P.</span><input id="pB" class="mini-input" inputmode="numeric" placeholder="迄頁" value="${esc(progress.b||'')}"><button id="skipPagesToggle" class="btn skip-pages-toggle" type="button">＋跳頁</button><div id="skipPagesWrap" class="skip-pages-wrap"><input id="skipPages" class="input" inputmode="text" maxlength="60" placeholder="例如 18、20～22" value="${esc(progress.skipPages||'')}"><span class="hint">可用「、」或「,」分隔；「～」或「-」表示範圍</span></div></div>
    <span class="progress-label">單元</span>
-   <div class="unit-inline"><select id="unitType" class="unit-select"><option>L</option><option>Ch</option><option>U</option></select><input id="unitNums" class="input" inputmode="text" placeholder="例如 4,5 或 4-6" value="${esc(progress.unitNums||'')}"><select id="unitDetail" class="unit-detail-select" aria-label="單元內容"><option value="">不指定內容</option><option value="生字">生字</option><option value="語詞＋綜合練習">語詞＋綜合練習</option></select></div>
+   <div class="unit-inline progress-mode-group" data-progress-mode="unit"><select id="unitType" class="unit-select"><option>L</option><option>Ch</option><option>U</option></select><input id="unitNums" class="input" inputmode="text" placeholder="例如 4、5／4～6／4-6" value="${esc(progress.unitNums||'')}"><select id="unitDetail" class="unit-detail-select" aria-label="單元內容"><option value="">不指定內容</option><option value="生字">生字</option><option value="語詞＋綜合練習">語詞＋綜合練習</option></select></div>
    <span class="progress-label">自由輸入</span>
-   <div class="free-inline"><input id="freeProgress" class="input" maxlength="100" placeholder="作文題目、學習單名稱等" value="${esc(progress.free||'')}"></div>`;
+   <div class="free-inline progress-mode-group" data-progress-mode="free"><input id="freeProgress" class="input" maxlength="100" placeholder="作文題目、學習單名稱等" value="${esc(progress.free||'')}"></div>`;
  $('unitType').value=['L','Ch','U'].includes(progress.unit)?progress.unit:'L';
  $('unitDetail').value=['','生字','語詞＋綜合練習'].includes(progress.unitDetail)?progress.unitDetail:'';
  $('pA').oninput=e=>{progress.a=e.target.value.replace(/\D/g,'').slice(0,4);renderProgressValidation()};
  $('pB').oninput=e=>{progress.b=e.target.value.replace(/\D/g,'').slice(0,4);renderProgressValidation()};
+ $('skipPages').oninput=e=>{progress.skipPages=e.target.value.replace(/[^0-9,，、\-～]/g,'').replace(/，/g,',').slice(0,60);e.target.value=progress.skipPages;renderProgressValidation()};
+ const syncSkipPagesUI=()=>{const has=String(progress.skipPages||'').trim()!=='';$('skipPagesWrap').classList.toggle('show',has);$('skipPagesToggle').textContent=has?'－收起跳頁':'＋跳頁'};
+ $('skipPagesToggle').onclick=()=>{const show=!$('skipPagesWrap').classList.contains('show');$('skipPagesWrap').classList.toggle('show',show);$('skipPagesToggle').textContent=show?'－收起跳頁':'＋跳頁';if(show)$('skipPages').focus()};
+ syncSkipPagesUI();
  $('unitType').onchange=e=>{progress.unit=e.target.value;renderProgressValidation()};
- $('unitNums').oninput=e=>{progress.unitNums=e.target.value.replace(/[^0-9,\-]/g,'').slice(0,30);renderProgressValidation()};
+ $('unitNums').oninput=e=>{progress.unitNums=e.target.value.replace(/[^0-9,，、\-～]/g,'').replace(/，/g,',').slice(0,30);e.target.value=progress.unitNums;renderProgressValidation()};
  $('unitDetail').onchange=e=>{progress.unitDetail=e.target.value;renderProgressValidation()};
  $('freeProgress').oninput=e=>{progress.free=e.target.value.slice(0,100);renderProgressValidation()};
  renderProgressValidation();
+ const initialMode=(progress.a||progress.b||progress.skipPages)?'pages':((progress.unitNums||progress.unitDetail)?'unit':(progress.free?'free':'pages'));
+ const setMobileProgressMode=(mode,clearOthers=false)=>{
+   if(clearOthers){
+     if(mode!=='pages'){progress.a='';progress.b='';progress.skipPages='';$('pA').value='';$('pB').value='';$('skipPages').value='';$('skipPagesWrap').classList.remove('show')}
+     if(mode!=='unit'){progress.unitNums='';progress.unitDetail='';$('unitNums').value='';$('unitDetail').value=''}
+     if(mode!=='free'){progress.free='';$('freeProgress').value=''}
+   }
+   document.querySelectorAll('.progress-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+   $('progressEditor').querySelectorAll('[data-progress-mode]').forEach(g=>g.classList.toggle('active',g.dataset.progressMode===mode));
+   renderProgressValidation();
+ };
+ document.querySelectorAll('.progress-mode-btn').forEach(b=>b.addEventListener('click',()=>setMobileProgressMode(b.dataset.mode,true)));
+ setMobileProgressMode(initialMode,false);
 }
 $('categoryEditBtn').addEventListener('click',toggleCategoryManager);
 document.querySelectorAll('.homework-status-btn').forEach(btn=>btn.addEventListener('click',()=>{selectedStatus=btn.dataset.status;document.querySelectorAll('.homework-status-btn').forEach(b=>b.classList.toggle('active',b===btn));if(selectedStudents.size)applyStatusToSelected()}));
@@ -1601,7 +1709,7 @@ function toggleHistoryOkEdit(id){
 
 function cancelHistoryRecordEdit(render=true){
  historyEditId='';historyEditDraft=null;historyEditOriginalManual={};
- selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
+ selectedStudents.clear();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
  if(render){renderProgress();renderHistoryMainEditBanner();renderStudentGrid();renderTable();renderCurrentCategorySummary()}
 }
 function startHistoryRecordEdit(id){
@@ -1650,7 +1758,7 @@ function saveHistoryRecordFromMain(){
  }
  save();
  historyEditId='';historyEditDraft=null;historyEditOriginalManual={};
- selectedStudents.clear();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
+ selectedStudents.clear();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
  renderAll();
 }
 function renderTable(){
@@ -1862,6 +1970,13 @@ function setContactCollapsed(collapsed){
  btn.textContent=contactCollapsed?'展開 ▼':'收起 ▲';
  btn.setAttribute('aria-expanded',contactCollapsed?'false':'true');
 }
+$('mobileMoreBtn').addEventListener('click',()=>{
+ const menu=$('mobileMoreMenu'),btn=$('mobileMoreBtn'),show=!menu.classList.contains('show');
+ menu.classList.toggle('show',show);btn.textContent=show?'更多 ▴':'更多 ▾';btn.setAttribute('aria-expanded',show?'true':'false');
+});
+$('mobileCategoryToggleBtn').addEventListener('click',()=>{mobileCategoriesCollapsed=!mobileCategoriesCollapsed;updateMobileCategoryUI()});
+setupMobileTopbar();
+window.addEventListener('resize',()=>{setupMobileTopbar();updateMobileCategoryUI()});
 $('contactCollapseBtn').addEventListener('click',()=>setContactCollapsed(!contactCollapsed));
 $('homeworkEntryCollapseBtn').addEventListener('click',()=>{
  const body=$('homeworkEntryBody'),btn=$('homeworkEntryCollapseBtn');
@@ -1960,7 +2075,7 @@ function showImportConfirm(raw,fileName){
  const ok=document.createElement('button');ok.type='button';ok.className='btn primary';ok.textContent='確定匯入';
  cancel.addEventListener('click',()=>box.remove());
  ok.addEventListener('click',()=>{
-   state=sanitizeState(raw);recomputeAllContinuousResolutions();save();progress={a:'',b:'',unit:'L',unitNums:'',unitDetail:'',free:''};
+   state=sanitizeState(raw);recomputeAllContinuousResolutions();save();progress={a:'',b:'',skipPages:'',unit:'L',unitNums:'',unitDetail:'',free:''};
    selectedStudents.clear();selectedContactStudents.clear();box.remove();renderAll();
    alert('備份已檢查並匯入完成。');
  });
