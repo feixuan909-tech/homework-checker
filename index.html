@@ -585,7 +585,7 @@ html.mobile-ux .cat-list.editing .category-delete{white-space:nowrap!important}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.45</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand-block"><div class="brand">作業點名簿<span class="brand-plus">＋</span></div><div class="brand-version">v5.46</div></div></div><button id="exportBtn" class="btn" type="button">匯出備份</button><label class="btn import-label">匯入備份<input id="importFile" type="file" accept=".json,application/json" hidden></label><button id="cloudToggleBtn" class="btn cloud-status-btn" type="button"><span id="cloudDot" class="cloud-dot"></span><span id="cloudStatusShort">雲端未設定</span></button><button id="studentToggleBtn" class="btn" type="button">學生個人紀錄</button><button id="overviewToggleBtn" class="btn primary" type="button">作業最新進度總覽</button><button id="mobileMoreBtn" class="btn mobile-only" type="button" aria-expanded="false">更多 ▾</button><div id="mobileMoreMenu"></div></header>
 <section id="cloudPanel" class="cloud-panel" aria-hidden="true">
   <div class="cloud-panel-head">
     <div>
@@ -862,7 +862,9 @@ function save(){
 window.hwCloudBridge={
  getState:()=>sanitizeState(state,false),
  applyRemote:(raw)=>{
-   state=sanitizeState(raw,true);
+   const localDrafts=(state&&state.drafts&&typeof state.drafts==='object')?state.drafts:{};
+   const remote=sanitizeState(raw,false);
+   state=sanitizeState({...remote,drafts:localDrafts},true);
    recomputeAllContinuousResolutions();
    selectedStudents.clear();selectedContactStudents.clear();
    saveLocalOnly();localStorage.setItem(CLOUD_DIRTY_KEY,'0');
@@ -2274,7 +2276,7 @@ const ui={
 };
 const bridge=window.hwCloudBridge;
 let firebaseReady=false,auth=null,db=null,currentUser=null,docRef=null,unsubscribe=null;
-let queueTimer=null,applyingRemote=false,lastRemoteToken='',cloudExists=false;
+let queueTimer=null,applyingRemote=false,lastRemoteToken='',baseRemoteToken='',pendingUploadToken='',cloudExists=false,syncConflict=false;
 
 function setStatus(shortText,longText,kind=''){
  if(ui.short)ui.short.textContent=shortText;
@@ -2290,6 +2292,15 @@ function setButtons(){
  if(ui.userLine)ui.userLine.innerHTML=signed
    ?`已登入：<span class="cloud-user">${String(currentUser.email||'Google 帳號').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</span>`
    :'';
+}
+function snapshotToken(snap){
+ const data=snap?.exists?.()?snap.data():null;
+ return data?String(data.clientUpdatedAt||'')+'|'+String(data.writer||''):'';
+}
+function enterSyncConflict(){
+ syncConflict=true;
+ clearTimeout(queueTimer);queueTimer=null;
+ setStatus('同步衝突待處理','雲端在這台裝置仍有未同步變更時也更新了。為避免互相覆蓋，請選「以這台裝置為準上傳」或「從雲端載入」。','wait');
 }
 async function initFirebase(){
  if(!FIREBASE_CONFIG||typeof FIREBASE_CONFIG!=='object'){
@@ -2313,19 +2324,20 @@ async function initFirebase(){
    authMod.onAuthStateChanged(auth,async user=>{
      currentUser=user||null;
      if(unsubscribe){unsubscribe();unsubscribe=null}
-     cloudExists=false;docRef=null;setButtons();
+     cloudExists=false;docRef=null;syncConflict=false;baseRemoteToken='';pendingUploadToken='';setButtons();
      if(!user){setStatus('雲端待登入','Firebase 已設定；請登入 Google 帳號開始同步。','wait');return}
      docRef=fsMod.doc(db,'users',user.uid,'apps','homework-rollcall-plus');
      setStatus('正在檢查雲端','正在確認雲端是否已有紀錄…','wait');
      const snap=await fsMod.getDoc(docRef);
-     cloudExists=snap.exists();setButtons();
+     cloudExists=snap.exists();baseRemoteToken=snapshotToken(snap);setButtons();
      if(!cloudExists){
        await uploadNow();
        startListener();
        return;
      }
      if(bridge?.isDirty?.()){
-       setStatus('請選同步方向','這台裝置和雲端都有資料。為避免覆蓋，請選「以上傳本機為準」或「從雲端載入」。','wait');
+       syncConflict=true;
+       setStatus('請選同步方向','這台裝置和雲端都有資料。為避免覆蓋，請選「以這台裝置為準上傳」或「從雲端載入」。','wait');
        return;
      }
      applySnapshot(snap);
@@ -2346,7 +2358,11 @@ function startListener(){
      setStatus('等待同步','變更已先保存在本機，正在送往雲端…','wait');
      return;
    }
-   applySnapshot(snap);
+   const token=snapshotToken(snap);
+   const ownUpdate=!!token&&(token===pendingUploadToken||token===lastRemoteToken);
+   if(bridge?.isDirty?.()&&!ownUpdate){enterSyncConflict();return}
+   syncConflict=false;
+   applySnapshot(snap);baseRemoteToken=token;
    setStatus(snap.metadata.fromCache?'離線快取':'已同步',
      snap.metadata.fromCache?'目前顯示快取資料；恢復網路後會再同步。':'此裝置已和雲端同步。',snap.metadata.fromCache?'wait':'ok');
  });
@@ -2355,42 +2371,55 @@ function applySnapshot(snap){
  if(!snap?.exists?.())return;
  const data=snap.data();
  if(!data||!data.state)return;
- const token=String(data.clientUpdatedAt||'')+'|'+String(data.writer||'');
- if(token&&token===lastRemoteToken)return;
+ const token=snapshotToken(snap);
+ if(token&&token===lastRemoteToken){baseRemoteToken=token;return}
  applyingRemote=true;
- try{bridge?.applyRemote?.(data.state);lastRemoteToken=token}catch(err){console.error('apply remote failed',err)}
+ try{bridge?.applyRemote?.(data.state);lastRemoteToken=token;baseRemoteToken=token}catch(err){console.error('apply remote failed',err)}
  finally{applyingRemote=false}
 }
-async function uploadNow(){
+async function uploadNow(force=false){
  if(!currentUser||!docRef||applyingRemote)return;
- const {setDoc,serverTimestamp}=window.__HW_FIREBASE.fsMod;
+ if(syncConflict&&!force){enterSyncConflict();return}
+ const {setDoc,serverTimestamp,runTransaction}=window.__HW_FIREBASE.fsMod;
  const payload=bridge?.getState?.();if(!payload)return;
- const token=Date.now();
+ const token=Date.now(),newToken=String(token)+'|'+currentUser.uid;
+ const docData={schema:1,state:payload,ownerUid:currentUser.uid,clientUpdatedAt:token,writer:currentUser.uid,serverUpdatedAt:serverTimestamp()};
+ pendingUploadToken=newToken;
  setStatus('正在同步','正在把這台裝置的紀錄安全地寫入雲端…','wait');
- await setDoc(docRef,{
-   schema:1,state:payload,ownerUid:currentUser.uid,
-   clientUpdatedAt:token,writer:currentUser.uid,serverUpdatedAt:serverTimestamp()
- },{merge:false});
- cloudExists=true;lastRemoteToken=String(token)+'|'+currentUser.uid;bridge?.markSynced?.();setButtons();
- setStatus('已同步','這台裝置的紀錄已寫入雲端。','ok');
+ try{
+  if(force)await setDoc(docRef,docData,{merge:false});
+  else await runTransaction(db,async tx=>{
+   const current=await tx.get(docRef),remoteToken=snapshotToken(current);
+   if(current.exists()&&remoteToken!==baseRemoteToken){const err=new Error('SYNC_CONFLICT');err.code='HW_SYNC_CONFLICT';throw err}
+   tx.set(docRef,docData,{merge:false});
+  });
+  cloudExists=true;lastRemoteToken=newToken;baseRemoteToken=newToken;pendingUploadToken='';syncConflict=false;bridge?.markSynced?.();setButtons();
+  setStatus('已同步','這台裝置的紀錄已寫入雲端。','ok');
+ }catch(err){
+  pendingUploadToken='';
+  if(err?.code==='HW_SYNC_CONFLICT'||String(err?.message||'').includes('SYNC_CONFLICT')){enterSyncConflict();return}
+  throw err;
+ }
 }
 async function downloadNow(){
  if(!currentUser||!docRef)return;
  const {getDoc}=window.__HW_FIREBASE.fsMod;
  const snap=await getDoc(docRef);
  if(!snap.exists()){setStatus('雲端沒有資料','目前雲端沒有可下載的紀錄。','wait');return}
- applySnapshot(snap);bridge?.markSynced?.();startListener();
- setStatus('已同步','已從雲端載入最新紀錄。','ok');
+ syncConflict=false;applySnapshot(snap);baseRemoteToken=snapshotToken(snap);bridge?.markSynced?.();startListener();
+ setStatus('已同步','已從雲端載入最新紀錄；這台裝置的臨時草稿仍保留。','ok');
 }
 function queuePush(){
  if(!currentUser||!docRef||applyingRemote)return;
+ if(syncConflict){enterSyncConflict();return}
  clearTimeout(queueTimer);
  setStatus('等待同步','本機已儲存，準備同步到雲端…','wait');
- queueTimer=setTimeout(()=>uploadNow().catch(err=>{
+ queueTimer=setTimeout(()=>uploadNow(false).catch(err=>{
    console.error('cloud upload failed',err);
-   setStatus('等待網路','雲端暫時無法寫入；本機資料仍保留，恢復網路後可再同步。','err');
+   setStatus('等待網路','雲端暫時無法寫入；本機資料仍保留，恢復網路後會再嘗試同步。','err');
  }),700);
 }
+window.addEventListener('online',()=>{if(currentUser&&docRef&&!syncConflict&&bridge?.isDirty?.())queuePush()});
 async function signIn(){
  if(!firebaseReady||!auth)return;
  const {GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence,browserSessionPersistence}=window.__HW_FIREBASE.authMod;
@@ -2410,12 +2439,12 @@ window.hwCloud={
  manualUpload:async()=>{
    if(!currentUser)return;
    if(!confirm('確定要用「這台裝置」目前的資料覆蓋雲端版本嗎？'))return;
-   await uploadNow();startListener();
+   syncConflict=false;await uploadNow(true);startListener();
  },
  manualDownload:async()=>{
    if(!currentUser)return;
-   if(!confirm('確定要用「雲端資料」取代這台裝置目前的資料嗎？建議先匯出備份。'))return;
-   await downloadNow();
+   if(!confirm('確定要用「雲端資料」取代這台裝置目前的正式資料嗎？本機臨時草稿會保留；建議仍先匯出備份。'))return;
+   syncConflict=false;await downloadNow();
  }
 };
 initFirebase();
