@@ -1503,7 +1503,14 @@ recomputeAllContinuousResolutions();save();renderAll();
      Firebase Web 設定會公開在前端，安全性必須靠 Authentication + Firestore Rules，
      絕對不要放服務帳戶金鑰、私密金鑰或任何密碼。
 */
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDS9Cv31o7paiA7kehuQtpcIogYEuYpAkY",
+  authDomain: "homework-checker-5bdbb.firebaseapp.com",
+  projectId: "homework-checker-5bdbb",
+  storageBucket: "homework-checker-5bdbb.firebasestorage.app",
+  messagingSenderId: "40901023423",
+  appId: "1:40901023423:web:8252429881904866ac580a"
+};
 // 範例格式（請勿照抄）：
 // const FIREBASE_CONFIG = {apiKey:"...",authDomain:"...",projectId:"...",appId:"..."};
 
